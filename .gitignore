@@ -1,7 +1,19 @@
+# Java / NetBeans (proyecto original)
 **/nbproject/private/
-**/nbproject/Makefile-* .mk 
-**/nbproject/Packa
+**/nbproject/Makefile-*
 build/
 nbbuild/
 dist/
 nbdist/
+out/
+*.class
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Godot
+game2d/.godot/
+
+# Sistema
+.DS_Store
