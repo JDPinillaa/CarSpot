@@ -72,7 +72,7 @@ func _draw_timing(view: Vector2) -> void:
 	var y := 12.0
 	draw_style_box(_panel, Rect2(x, y, w, 110))
 
-	draw_string(_font, Vector2(x + 18, y + 24), "VUELTA %d" % (int(state.get("lap", 0)) + 1),
+	draw_string(_font, Vector2(x + 18, y + 24), "VUELTA %d" % (int(state.get("laps", 0)) + 1),
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(1, 1, 1, 0.55))
 	_text_right(Vector2(x + w - 18, y + 24), "MEJOR  " + _fmt(float(state.get("best_lap", -1.0))),
 		13, Color(ACCENT.r, ACCENT.g, ACCENT.b, 0.92))

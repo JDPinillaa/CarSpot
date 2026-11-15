@@ -152,7 +152,9 @@ func _integrate(dt: float) -> void:
 
 	track_index = track.nearest_index(global_position, track_index)
 	surface_grip = track.surface_grip(global_position, track_index)
-	on_track = surface_grip > 0.9
+	# Los pianos (0.82) siguen siendo parte del circuito; solo el césped saca
+	# al coche de pista. El agarre real se aplica por separado.
+	on_track = surface_grip >= 0.8
 
 	var m: float = spec["mass"]
 	var wb: float = spec["wheelbase"]
