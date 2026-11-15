@@ -334,7 +334,7 @@ func _to_menu() -> void:
 	_message_time = 0.0
 	_menu_flags(true)
 	if engine_audio != null:
-		engine_audio.set_state(Powertrain.IDLE_RPM, 0.0, 0.0, 0.0)
+		engine_audio.stop_engine()
 
 
 func _clear_world() -> void:
@@ -353,6 +353,7 @@ func _setup_audio() -> void:
 	if engine_audio == null:
 		engine_audio = EngineAudio.new()
 		add_child(engine_audio)
+	engine_audio.start_engine()
 	engine_audio.set_state(Powertrain.IDLE_RPM, 0.0, 0.0, 0.0)
 
 
@@ -466,7 +467,9 @@ func _reset_car() -> void:
 	var idx := track.nearest_index(car.global_position)
 	car.reset_at(track.points[idx], track.tangents[idx].angle())
 	_lap_valid = false
-	_lap_progress = 0.0
+	# Mantener la distancia real recorrida: si vuelves a la pista a mitad de
+	# vuelta, la meta y los sectores siguen donde les corresponde.
+	_lap_progress = track.distance_at(idx)
 	_prev_progress = float(idx) / float(track.points.size())
 	_last_index = idx
 	_sector_index = 0
@@ -628,10 +631,14 @@ func _toggle_pause() -> void:
 		state = State.PAUSED
 		if car != null:
 			car.active = false
+		if engine_audio != null:
+			engine_audio.stop_engine()
 	elif state == State.PAUSED:
 		state = State.RACE
 		if car != null:
 			car.active = true
+		if engine_audio != null:
+			engine_audio.start_engine()
 
 
 # --- Piloto automático y pruebas -------------------------------------------

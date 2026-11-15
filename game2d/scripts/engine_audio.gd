@@ -26,8 +26,23 @@ func _ready() -> void:
 	generator.buffer_length = 0.08
 	stream = generator
 	volume_db = -10.0
-	play()
+	start_engine()
+
+
+## Reanuda el generador. Es idempotente: se puede llamar al arrancar una
+## carrera o al salir de una pausa sin reiniciar el audio dos veces.
+func start_engine() -> void:
+	if stream == null:
+		return
+	if not playing:
+		play()
 	_playback = get_stream_playback() as AudioStreamGeneratorPlayback
+
+
+## Detiene el generador para que el motor no siga sonando en el menú o en pausa.
+func stop_engine() -> void:
+	stop()
+	_playback = null
 
 
 ## Estado que llega desde el vehículo cada frame.
