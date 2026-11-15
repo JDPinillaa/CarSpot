@@ -1,2 +1,14 @@
-llantas   Bonitas
-motor     3000
+# Perfiles de vehículos. Agrega otro bloque perfil.<id>.<opcion>=<valor>.
+perfilActivo=urbano
+
+perfil.urbano.nombre=CarSpot Urbano
+perfil.urbano.motor=1000
+perfil.urbano.llantas=Buenas
+perfil.urbano.transmision=automatica
+perfil.urbano.interior=clasico
+
+perfil.deportivo.nombre=CarSpot Deportivo
+perfil.deportivo.motor=3000
+perfil.deportivo.llantas=Bonitas
+perfil.deportivo.transmision=manual
+perfil.deportivo.interior=deportivo

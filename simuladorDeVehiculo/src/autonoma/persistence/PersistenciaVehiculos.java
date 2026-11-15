@@ -1,54 +1,111 @@
 package autonoma.persistence;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
+import autonoma.models.CajaAutomatica;
+import autonoma.models.CajaCambios;
+import autonoma.models.CajaManual;
+import autonoma.models.Llanta;
+import autonoma.models.LlantasBaratas;
+import autonoma.models.LlantasBuenas;
+import autonoma.models.LlantasBonitas;
+import autonoma.models.Motor;
+import autonoma.models.Motor1000;
+import autonoma.models.Motor2000;
+import autonoma.models.Motor3000;
+import autonoma.models.PerfilVehiculo;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
-/**
- * Clase que gestiona la persistencia de datos relacionados con los vehículos.
- * Permite leer la configuración de un vehículo desde un archivo de texto.
- * 
- * El archivo debe contener especificaciones en el formato:
- * - llantas <tipo_de_llantas>
- * - motor <tipo_de_motor>
- * 
- * Estas configuraciones se utilizan para inicializar las características del vehículo.
- * 
- * @author Santiago
- * @since 20250405
- * @version 1.0
- */
-public class PersistenciaVehiculos {
+/** Lee perfiles de vehículos desde un archivo clave/valor extensible. */
+public final class PersistenciaVehiculos {
+    private static final Path CONFIGURACION = Path.of("data", "especificaciones.txt");
 
-    /**
-     * Lee la configuración del vehículo desde el archivo "data/especificaciones.txt".
-     * 
-     * @return Un arreglo de cadenas donde:
-     *         - [0] contiene el tipo de llantas.
-     *         - [1] contiene el tipo de motor.
-     *         Si ocurre un error o no se encuentra una configuración, los valores serán null.
-     */
-    public static String[] leerConfiguracionVehiculo() {
-        String[] configuracion = new String[2]; // [0] = llantas, [1] = motor
+    private PersistenciaVehiculos() { }
 
-        try (BufferedReader lector = new BufferedReader(new FileReader("data/especificaciones.txt"))) {
-            String linea;
-            while ((linea = lector.readLine()) != null) {
-                String[] partes = linea.split("\\s+"); // Divide por espacios
-                if (partes.length == 2) {
-                    if (partes[0].equalsIgnoreCase("llantas")) {
-                        configuracion[0] = partes[1];
-                    } else if (partes[0].equalsIgnoreCase("motor")) {
-                        configuracion[1] = partes[1];
-                    }
-                }
+    public static CatalogoVehiculos cargarCatalogo() throws IOException {
+        Map<String, String> valores = leerValores();
+        Map<String, Map<String, String>> perfiles = new LinkedHashMap<>();
+        for (Map.Entry<String, String> valor : valores.entrySet()) {
+            String[] partes = valor.getKey().split("\\.", 3);
+            if (partes.length == 3 && partes[0].equals("perfil")) {
+                perfiles.computeIfAbsent(partes[1], ignorado -> new LinkedHashMap<>())
+                        .put(partes[2], valor.getValue());
             }
-        } catch (Exception e) {
-            System.out.println("Error leyendo archivo: " + e.getMessage());
         }
 
-        return configuracion;
+        // Compatibilidad con el formato antiguo: motor/llantas en la raíz.
+        if (perfiles.isEmpty()) perfiles.put("principal", valores);
+        List<PerfilVehiculo> lista = new ArrayList<>();
+        for (Map.Entry<String, Map<String, String>> perfil : perfiles.entrySet()) {
+            Map<String, String> datos = perfil.getValue();
+            Motor motor = crearMotor(requerido(datos, "motor", perfil.getKey()));
+            Llanta llantas = crearLlantas(requerido(datos, "llantas", perfil.getKey()));
+            CajaCambios transmision = crearTransmision(datos.getOrDefault("transmision", "automatica"));
+            String nombre = datos.getOrDefault("nombre", perfil.getKey());
+            String interior = datos.getOrDefault("interior", "clasico");
+            lista.add(new PerfilVehiculo(perfil.getKey(), nombre, interior, motor, llantas, transmision));
+        }
+        return new CatalogoVehiculos(lista, valores.getOrDefault("perfilactivo", lista.get(0).getId()));
+    }
+
+    private static Map<String, String> leerValores() throws IOException {
+        Map<String, String> valores = new LinkedHashMap<>();
+        for (String linea : Files.readAllLines(CONFIGURACION)) {
+            String limpia = linea.strip();
+            if (limpia.isEmpty() || limpia.startsWith("#")) continue;
+            int separador = limpia.indexOf('=');
+            String clave;
+            String valor;
+            if (separador >= 0) {
+                clave = limpia.substring(0, separador).trim();
+                valor = limpia.substring(separador + 1).trim();
+            } else {
+                String[] partes = limpia.split("\\s+", 2);
+                if (partes.length != 2) continue;
+                clave = partes[0];
+                valor = partes[1].trim();
+            }
+            valores.put(clave.toLowerCase(Locale.ROOT), valor);
+        }
+        return valores;
+    }
+
+    private static String requerido(Map<String, String> datos, String clave, String perfil) throws IOException {
+        String valor = datos.get(clave);
+        if (valor == null || valor.isBlank()) {
+            throw new IOException("Falta '" + clave + "' en el perfil '" + perfil + "' de " + CONFIGURACION);
+        }
+        return valor;
+    }
+
+    private static Motor crearMotor(String tipo) throws IOException {
+        return switch (tipo.trim()) {
+            case "1000" -> new Motor1000();
+            case "2000" -> new Motor2000();
+            case "3000" -> new Motor3000();
+            default -> throw new IOException("Motor no reconocido: " + tipo);
+        };
+    }
+
+    private static Llanta crearLlantas(String tipo) throws IOException {
+        return switch (tipo.toLowerCase(Locale.ROOT)) {
+            case "baratas" -> new LlantasBaratas();
+            case "buenas" -> new LlantasBuenas();
+            case "bonitas" -> new LlantasBonitas();
+            default -> throw new IOException("Tipo de llantas no reconocido: " + tipo);
+        };
+    }
+
+    private static CajaCambios crearTransmision(String tipo) throws IOException {
+        return switch (tipo.toLowerCase(Locale.ROOT)) {
+            case "manual" -> new CajaManual();
+            case "automatica", "automática" -> new CajaAutomatica();
+            default -> throw new IOException("Transmisión no reconocida: " + tipo);
+        };
     }
 }
-
-
-

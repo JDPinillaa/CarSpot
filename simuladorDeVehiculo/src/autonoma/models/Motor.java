@@ -21,6 +21,10 @@ public abstract class Motor {
      */
     protected int velocidadMaxima;
 
+    /** Régimen máximo y ralentí usados por el tacómetro. */
+    protected int revolucionesMaximas = 6500;
+    protected int revolucionesMinimas = 850;
+
     /**
      * Obtiene la velocidad máxima del motor.
      * 
@@ -29,4 +33,8 @@ public abstract class Motor {
     public int getVelocidadMaxima() {
         return velocidadMaxima;
     }
+
+    public int getRevolucionesMaximas() { return revolucionesMaximas; }
+
+    public int getRevolucionesMinimas() { return revolucionesMinimas; }
 }

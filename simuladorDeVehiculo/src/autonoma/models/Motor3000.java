@@ -24,5 +24,6 @@ public class Motor3000 extends Motor {
      */
     public Motor3000() {
         this.velocidadMaxima = 220;
+        this.revolucionesMaximas = 7000;
     }
 }

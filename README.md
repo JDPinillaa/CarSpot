@@ -47,7 +47,9 @@ La primera versión es un proyecto académico de programación orientada a
 objetos. Modela un carro con componentes intercambiables —motores y llantas—,
 maneja estados y excepciones propias, lee la configuración desde
 `simuladorDeVehiculo/data/especificaciones.txt` y presenta una cabina con
-Java Swing. También incluye imágenes y sonidos propios.
+Java Swing. También incluye imágenes y sonidos propios. La refactorización
+inicial ya permite perfiles seleccionables, interiores clásico/deportivo,
+velocímetro, tacómetro y transmisiones manuales o automáticas.
 
 Es una base funcional para experimentar, pero todavía requiere bastante trabajo
 en diseño, arquitectura, experiencia de usuario y alcance para sentirse como
@@ -63,7 +65,9 @@ relativa (`data/especificaciones.txt`), así que ejecuta el programa con
 
 La clase de entrada está en
 [`Main.java`](simuladorDeVehiculo/src/autonoma/main/Main.java); las instrucciones
-de proyecto de NetBeans están en `simuladorDeVehiculo/nbproject/`.
+de proyecto de NetBeans están en `simuladorDeVehiculo/nbproject/`. Consulta el
+[README de la versión Java](simuladorDeVehiculo/README.md) para crear perfiles,
+entender los controles y conocer la arquitectura.
 
 ## Versión 3: juego 3D
 

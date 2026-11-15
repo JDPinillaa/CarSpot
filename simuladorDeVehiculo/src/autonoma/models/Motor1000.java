@@ -25,5 +25,6 @@ public class Motor1000 extends Motor {
      */
     public Motor1000() {
         this.velocidadMaxima = 100;
+        this.revolucionesMaximas = 6000;
     }
 }

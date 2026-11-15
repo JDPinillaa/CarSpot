@@ -20,5 +20,6 @@ public class Motor2000 extends Motor {
      */
     public Motor2000() {
         this.velocidadMaxima = 160;
+        this.revolucionesMaximas = 6500;
     }
 }
