@@ -697,9 +697,9 @@ func _autopilot(delta: float) -> void:
 ## disponible, de modo que la velocidad cae a tiempo.
 func _autopilot_speed_limit(idx: int) -> float:
 	var n := track.points.size()
-	var mu := 9.81 * float(car.spec["grip_rear"]) * 0.46
+	var mu := 9.81 * float(car.spec["grip_rear"]) * 0.52
 	var brake_accel := 6.0
-	var limit := 16.8
+	var limit := 45.0
 	for k in range(0, 56, 2):
 		var i := (idx + k) % n
 		var curvature := absf(track.curvatures[i])
