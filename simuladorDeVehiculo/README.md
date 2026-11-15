@@ -7,9 +7,10 @@ separado de la interfaz y preparado para configurar varios vehículos.
 ## Ejecutar
 
 Requiere JDK 22 o compatible. Abre esta carpeta como proyecto Ant en NetBeans y
-ejecuta `autonoma.main.Main`. El programa lee
-`data/especificaciones.txt` usando esa carpeta como directorio de trabajo;
-al iniciar permite seleccionar uno de los perfiles configurados.
+ejecuta `autonoma.main.Main`. El programa busca `data/especificaciones.txt`
+desde el directorio de ejecución y desde la ubicación de las clases, por lo que
+puedes iniciarlo desde esta carpeta o desde la raíz del repositorio. Al iniciar
+permite seleccionar uno de los perfiles configurados.
 
 También se puede compilar desde la carpeta del proyecto:
 

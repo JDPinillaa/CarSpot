@@ -17,6 +17,7 @@ Memoria del proyecto entre sesiones. Máximo ~50 líneas.
 - En el Java original, mantener `models` sin Swing/audio; presentación y efectos viven en `views` y `sounds`.
 - Los perfiles Java se definen en `simuladorDeVehiculo/data/especificaciones.txt`; `PerfilVehiculo` ensambla el modelo, transmisión y tema de interior.
 - `CajaAutomatica` debe poder pasar varias marchas si una acción discreta salta varias zonas de RPM; `CajaManual` limita la velocidad por relación.
+- La configuración Java no debe depender solo de `user.dir`: NetBeans/IntelliJ y la terminal pueden iniciar desde carpetas distintas. Buscar `data/especificaciones.txt` desde el cwd y desde la ubicación de las clases.
 
 ## Aprendizajes y mejoras pendientes
 - El HUD usa `laps`; `main.gd` le entrega esa clave correctamente.

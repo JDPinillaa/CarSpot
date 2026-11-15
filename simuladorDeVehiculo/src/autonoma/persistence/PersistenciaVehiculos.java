@@ -13,22 +13,26 @@ import autonoma.models.Motor2000;
 import autonoma.models.Motor3000;
 import autonoma.models.PerfilVehiculo;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /** Lee perfiles de vehículos desde un archivo clave/valor extensible. */
 public final class PersistenciaVehiculos {
-    private static final Path CONFIGURACION = Path.of("data", "especificaciones.txt");
+    private static final Path RUTA_CONFIGURACION = Path.of("data", "especificaciones.txt");
 
     private PersistenciaVehiculos() { }
 
     public static CatalogoVehiculos cargarCatalogo() throws IOException {
-        Map<String, String> valores = leerValores();
+        Path configuracion = localizarConfiguracion();
+        Map<String, String> valores = leerValores(configuracion);
         Map<String, Map<String, String>> perfiles = new LinkedHashMap<>();
         for (Map.Entry<String, String> valor : valores.entrySet()) {
             String[] partes = valor.getKey().split("\\.", 3);
@@ -53,9 +57,9 @@ public final class PersistenciaVehiculos {
         return new CatalogoVehiculos(lista, valores.getOrDefault("perfilactivo", lista.get(0).getId()));
     }
 
-    private static Map<String, String> leerValores() throws IOException {
+    private static Map<String, String> leerValores(Path configuracion) throws IOException {
         Map<String, String> valores = new LinkedHashMap<>();
-        for (String linea : Files.readAllLines(CONFIGURACION)) {
+        for (String linea : Files.readAllLines(configuracion)) {
             String limpia = linea.strip();
             if (limpia.isEmpty() || limpia.startsWith("#")) continue;
             int separador = limpia.indexOf('=');
@@ -75,10 +79,47 @@ public final class PersistenciaVehiculos {
         return valores;
     }
 
+    /**
+     * Busca el archivo tanto desde el directorio de ejecución como desde la
+     * ubicación de las clases. Así funciona al ejecutar desde el repo, el
+     * proyecto Ant o su carpeta build/classes.
+     */
+    private static Path localizarConfiguracion() throws IOException {
+        Set<Path> bases = new LinkedHashSet<>();
+        agregarAncestros(Path.of(System.getProperty("user.dir", ".")), bases);
+        try {
+            Path clases = Path.of(PersistenciaVehiculos.class.getProtectionDomain()
+                    .getCodeSource().getLocation().toURI());
+            agregarAncestros(clases, bases);
+        } catch (URISyntaxException | SecurityException | NullPointerException ignorada) {
+            // Si el runtime no expone la ubicación de las clases, queda la búsqueda desde user.dir.
+        }
+
+        for (Path base : bases) {
+            Path directa = base.resolve(RUTA_CONFIGURACION);
+            if (Files.isRegularFile(directa)) return directa;
+
+            Path desdeRaiz = base.resolve("simuladorDeVehiculo").resolve(RUTA_CONFIGURACION);
+            if (Files.isRegularFile(desdeRaiz)) return desdeRaiz;
+        }
+
+        throw new IOException("No se encontró " + RUTA_CONFIGURACION
+                + ". Ejecuta desde la carpeta del proyecto o la raíz del repositorio.");
+    }
+
+    private static void agregarAncestros(Path ruta, Set<Path> destinos) {
+        Path actual = ruta.toAbsolutePath().normalize();
+        if (!Files.isDirectory(actual)) actual = actual.getParent();
+        while (actual != null) {
+            destinos.add(actual);
+            actual = actual.getParent();
+        }
+    }
+
     private static String requerido(Map<String, String> datos, String clave, String perfil) throws IOException {
         String valor = datos.get(clave);
         if (valor == null || valor.isBlank()) {
-            throw new IOException("Falta '" + clave + "' en el perfil '" + perfil + "' de " + CONFIGURACION);
+            throw new IOException("Falta '" + clave + "' en el perfil '" + perfil + "' de la configuración.");
         }
         return valor;
     }
