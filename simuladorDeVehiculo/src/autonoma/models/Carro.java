@@ -1,226 +1,140 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package autonoma.models;
-import autonoma.exceptions.*;
-import java.io.IOException;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Clip;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.UnsupportedAudioFileException;
-import javax.swing.JOptionPane;
 
-/**
- * Clase que representa un carro.
- * Contiene la lógica para encender, apagar, acelerar, frenar y mostrar el estado del vehículo.
- * También maneja situaciones como accidentes y patinaje.
- * 
- * @author juand
- * @since 20250402
- * @version 1.1
- */
+import autonoma.models.fisica.ModeloAdherenciaLongitudinal;
+import autonoma.models.fisica.ResistenciaCarretera;
+import autonoma.models.motores.Motor;
+import autonoma.models.transmisiones.CajaCambios;
+
+/** Dinámica longitudinal SI del vehículo; no depende de Swing ni de audio. */
 public class Carro {
+    private static final double RETARDO_CAMBIO_S = 0.16; // estimación de una DSG con doble embrague
+    private static final double FRACCION_PAR_DURANTE_CAMBIO = 0.75; // transferencia de par estimada
 
-    /**
-     * Motor del carro.
-     */
-    private Motor motor;
-
-    /**
-     * Llantas del carro.
-     */
-    private Llanta llantas;
-
-    /**
-     * Estado del motor (encendido o apagado).
-     */
+    private final Motor motor;
+    private final CajaCambios cajaCambios;
+    private final double masaKg;
+    private final ResistenciaCarretera resistenciaCarretera;
+    private final ModeloAdherenciaLongitudinal modeloAdherencia;
+    private final double radioRuedaM;
     private boolean encendido;
+    private double velocidadMps;
+    private double acelerador;
+    private double freno;
+    private double revoluciones;
+    private double tiempoCambioRestante;
 
-    /**
-     * Velocidad actual del carro en km/h.
-     */
-    private int velocidadActual;
-
-    /**
-     * Indica si el carro está patinando.
-     */
-    private boolean haPatinado;
-
-    /**
-     * Indica si el carro ha sufrido un accidente.
-     */
-    private boolean seHaAccidentado;
-
-    /**
-     * Constructor de la clase Carro.
-     * 
-     * @param motor Motor del carro.
-     * @param llantas Llantas del carro.
-     */
-    public Carro(Motor motor, Llanta llantas) {
+    public Carro(Motor motor, CajaCambios cajaCambios, double masaKg, double radioRuedaM,
+            ResistenciaCarretera resistenciaCarretera,
+            ModeloAdherenciaLongitudinal modeloAdherencia) {
+        if (motor == null || cajaCambios == null
+                || resistenciaCarretera == null || modeloAdherencia == null) {
+            throw new IllegalArgumentException("El tren motriz y los modelos físicos son obligatorios.");
+        }
+        if (!Double.isFinite(masaKg) || masaKg <= 0 || !Double.isFinite(radioRuedaM) || radioRuedaM <= 0) {
+            throw new IllegalArgumentException("La masa y el radio de rueda deben ser positivos y finitos.");
+        }
         this.motor = motor;
-        this.llantas = llantas;
-        this.encendido = false;
-        this.velocidadActual = 0;
-        this.haPatinado = false;
-        this.seHaAccidentado = false;
+        this.cajaCambios = cajaCambios;
+        this.masaKg = masaKg;
+        this.resistenciaCarretera = resistenciaCarretera;
+        this.modeloAdherencia = modeloAdherencia;
+        this.radioRuedaM = radioRuedaM;
+        revoluciones = motor.getRevolucionesMinimas();
     }
 
-    /**
-     * Enciende el motor del carro.
-     * 
-     * @throws CarroYaEncendidoException Si el carro ya está encendido.
-     * @throws UnsupportedAudioFileException Si el archivo de audio no es compatible.
-     * @throws IOException Si ocurre un error al cargar el archivo de audio.
-     * @throws LineUnavailableException Si no se puede reproducir el audio.
-     */
-    public void encender() throws CarroYaEncendidoException, UnsupportedAudioFileException, IOException, LineUnavailableException {
-        if (encendido) throw new CarroYaEncendidoException("El vehículo ya está encendido.");
+    public void encender() {
+        if (encendido) return;
         encendido = true;
-        try (AudioInputStream audioIn = AudioSystem.getAudioInputStream(
-            getClass().getResourceAsStream("/autonoma/sounds/startEngine.wav"))) {
-            Clip clip = AudioSystem.getClip();
-            clip.open(audioIn);
-            clip.start();
-        }
-        JOptionPane.showMessageDialog(null, "Motor Encendido correctamente", "Motor encendido", JOptionPane.INFORMATION_MESSAGE);
+        revoluciones = Math.max(revoluciones, motor.getRevolucionesMinimas());
     }
 
-    /**
-     * Apaga el motor del carro.
-     * 
-     * @throws CarroYaApagadoException Si el carro ya está apagado.
-     * @throws CarroAccidentadoException Si el carro está accidentado.
-     * @throws UnsupportedAudioFileException Si el archivo de audio no es compatible.
-     * @throws IOException Si ocurre un error al cargar el archivo de audio.
-     * @throws LineUnavailableException Si no se puede reproducir el audio.
-     */
-    public void apagar() throws CarroYaApagadoException, CarroAccidentadoException, UnsupportedAudioFileException, IOException, LineUnavailableException {
-        if (!encendido) throw new CarroYaApagadoException("El vehículo ya está apagado.");
-        if (velocidadActual > 60) {
-            seHaAccidentado = true;
-            encendido = false;
-            velocidadActual = 0;
-            try (AudioInputStream audioIn = AudioSystem.getAudioInputStream(
-                getClass().getResourceAsStream("/autonoma/sounds/accident.wav"))) {
-                Clip clip = AudioSystem.getClip();
-                clip.open(audioIn);
-                clip.start();
-            }
-            throw new CarroAccidentadoException("¡Accidente! No se puede apagar a esa velocidad.");
-        }
+    public void apagar() {
+        if (!encendido) return;
         encendido = false;
-        try (AudioInputStream audioIn = AudioSystem.getAudioInputStream(
-            getClass().getResourceAsStream("/autonoma/sounds/stopEngine.wav"))) {
-            Clip clip = AudioSystem.getClip();
-            clip.open(audioIn);
-            clip.start();
-        }
-        JOptionPane.showMessageDialog(null, "Motor apagado correctamente", "Motor apagado", JOptionPane.INFORMATION_MESSAGE);
+        acelerador = 0;
+        revoluciones = 0;
     }
 
-    /**
-     * Acelera el carro en una cantidad específica de km/h.
-     * 
-     * @param kmh Cantidad de km/h a acelerar.
-     * @throws CarroApagadoException Si el carro está apagado.
-     * @throws CarroAccidentadoException Si el carro está accidentado.
-     * @throws UnsupportedAudioFileException Si el archivo de audio no es compatible.
-     * @throws IOException Si ocurre un error al cargar el archivo de audio.
-     * @throws LineUnavailableException Si no se puede reproducir el audio.
-     */
-    public void acelerar(int kmh) throws CarroApagadoException, CarroAccidentadoException, UnsupportedAudioFileException, IOException, LineUnavailableException {
-        if (!encendido) throw new CarroApagadoException("No se puede acelerar con el vehículo apagado.");
-        velocidadActual += kmh;
-        if (velocidadActual > motor.getVelocidadMaxima()) {
-            seHaAccidentado = true;
-            encendido = false;
-            velocidadActual = 0;
-            throw new CarroAccidentadoException("¡El motor falló! Aceleró más de lo permitido.");
-        }
-        try (AudioInputStream audioIn = AudioSystem.getAudioInputStream(
-            getClass().getResourceAsStream("/autonoma/sounds/engineAccelerating.wav"))) {
-            Clip clip = AudioSystem.getClip();
-            clip.open(audioIn);
-            clip.start();
-        }
-        JOptionPane.showMessageDialog(null, "Acelerando " + kmh + " km/h. Velocidad actual: " + velocidadActual, "Acelerando", JOptionPane.INFORMATION_MESSAGE);
+    public void setAcelerador(double valor) {
+        acelerador = encendido ? limitarEntrada(valor) : 0;
     }
 
-    /**
-     * Frena el carro en una cantidad específica de km/h.
-     * 
-     * @param kmh Cantidad de km/h a frenar.
-     * @throws CarroApagadoException Si el carro está apagado.
-     * @throws CarroDetenidoException Si el carro ya está detenido.
-     * @throws CarroHaPatinadoException Si el carro patina al frenar.
-     * @throws CarroAccidentadoException Si el carro está accidentado.
-     * @throws UnsupportedAudioFileException Si el archivo de audio no es compatible.
-     * @throws IOException Si ocurre un error al cargar el archivo de audio.
-     * @throws LineUnavailableException Si no se puede reproducir el audio.
-     */
-    public void frenar(int kmh) throws CarroApagadoException, CarroDetenidoException, CarroHaPatinadoException, CarroAccidentadoException, UnsupportedAudioFileException, IOException, LineUnavailableException {
-        if (!encendido) throw new CarroApagadoException("No se puede frenar con el vehículo apagado.");
-        if (velocidadActual == 0) throw new CarroDetenidoException("El vehículo ya está detenido.");
-        if (seHaAccidentado) throw new CarroAccidentadoException("El vehículo está accidentado y no puede realizar esta acción.");
-        if (haPatinado) {
-            try (AudioInputStream audioIn = AudioSystem.getAudioInputStream(
-                getClass().getResourceAsStream("/autonoma/sounds/softBrake.wav"))) {
-                Clip clip = AudioSystem.getClip();
-                clip.open(audioIn);
-                clip.start();
+    public void setFreno(double valor) {
+        freno = limitarEntrada(valor);
+        if (freno > 0.05) acelerador = 0;
+    }
+
+    /** Avanza el modelo por un paso en segundos; dt se limita para evitar saltos al pausar la UI. */
+    public void actualizar(double dt) {
+        if (!Double.isFinite(dt) || dt <= 0) return;
+        double paso = Math.min(dt, 0.05);
+        int marchaAntes = cajaCambios.getMarchaActual();
+        boolean permitirCambio = tiempoCambioRestante <= 0;
+        if (encendido) {
+            cajaCambios.actualizar(velocidadMps, motor, acelerador, radioRuedaM, permitirCambio);
+            if (cajaCambios.getMarchaActual() != marchaAntes) {
+                int saltos = Math.abs(cajaCambios.getMarchaActual() - marchaAntes);
+                tiempoCambioRestante = RETARDO_CAMBIO_S * saltos;
             }
-            JOptionPane.showMessageDialog(null, "El vehículo está patinando, no puedes frenar más hasta detenerse.", "Advertencia", JOptionPane.WARNING_MESSAGE);
-            return;
         }
+        int rpmCalculadas = encendido ? cajaCambios.getRevoluciones() : 0;
+        if (encendido && velocidadMps < 0.5) rpmCalculadas = motor.getRevolucionesMinimas();
+        revoluciones = rpmCalculadas;
 
-        boolean esFrenadoBrusco = kmh > 30;
+        double fuerzaMotorEnRuedas = motor.getParNm(revoluciones)
+                * cajaCambios.getRelacionActual() * cajaCambios.getRelacionFinal()
+                * cajaCambios.getEficiencia() / radioRuedaM;
+        double fuerzaTraccion = acelerador * fuerzaMotorEnRuedas;
+        fuerzaTraccion = modeloAdherencia.limitarFuerzaTraccionN(fuerzaTraccion);
 
-        if (esFrenadoBrusco && velocidadActual > llantas.getLimitePatinaje()) {
-            haPatinado = true;
-            try (AudioInputStream audioIn = AudioSystem.getAudioInputStream(
-                getClass().getResourceAsStream("/autonoma/sounds/brake.wav"))) {
-                Clip clip = AudioSystem.getClip();
-                clip.open(audioIn);
-                clip.start();
-            }
-            throw new CarroHaPatinadoException("¡El vehículo patinó al frenar bruscamente!");
+        double fuerzaResistencia = resistenciaCarretera.calcularFuerzaN(velocidadMps);
+        double fuerzaFrenado = modeloAdherencia.calcularFuerzaFrenadoN(freno);
+        double fuerzaMotor = !encendido ? 0 : acelerador > 0 ? fuerzaTraccion : -calcularFrenoMotor();
+
+        if (tiempoCambioRestante > 0) {
+            fuerzaMotor *= FRACCION_PAR_DURANTE_CAMBIO;
+            tiempoCambioRestante = Math.max(0, tiempoCambioRestante - paso);
         }
-
-        if (kmh > velocidadActual) {
-            haPatinado = true;
-            try (AudioInputStream audioIn = AudioSystem.getAudioInputStream(
-                getClass().getResourceAsStream("/autonoma/sounds/brake.wav"))) {
-                Clip clip = AudioSystem.getClip();
-                clip.open(audioIn);
-                clip.start();
-            }
-            throw new CarroHaPatinadoException("¡El vehículo patinó porque el frenado fue mayor que la velocidad actual!");
+        double aceleracion = (fuerzaMotor - fuerzaFrenado - fuerzaResistencia) / masaKg;
+        velocidadMps = Math.max(0, velocidadMps + aceleracion * paso);
+        double velocidadMaxima = motor.getVelocidadMaxima() / 3.6;
+        if (velocidadMps >= velocidadMaxima) {
+            velocidadMps = velocidadMaxima; // limitador electrónico publicado para el GTI
+            if (acelerador > 0) revoluciones = Math.min(revoluciones, motor.getRevolucionesMaximas());
         }
-
-        velocidadActual -= kmh;
-
-        if (velocidadActual <= 0) {
-            velocidadActual = 0;
-            haPatinado = false;
-        }
-
-        JOptionPane.showMessageDialog(null, "Frenando " + kmh + " km/h. Velocidad actual: " + velocidadActual, "Frenando", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    /**
-     * Muestra el estado actual del carro.
-     */
-    public void mostrarEstado() {
-        JOptionPane.showMessageDialog(null, 
-            "=== Estado del Vehículo ===\n" +
-            "Encendido: " + encendido + "\n" +
-            "Velocidad Actual: " + velocidadActual + " km/h\n" +
-            "Patinando: " + haPatinado + "\n" +
-            "Accidentado: " + seHaAccidentado + "\n" +
-            "===========================", 
-            "Estado del Vehículo", JOptionPane.INFORMATION_MESSAGE);
+    private double calcularFrenoMotor() {
+        if (!encendido || velocidadMps < 0.5) return 0;
+        return motor.getParNm(revoluciones) * 0.12 * cajaCambios.getRelacionActual()
+                * cajaCambios.getRelacionFinal() / radioRuedaM;
     }
+
+    private static double limitarEntrada(double valor) {
+        if (!Double.isFinite(valor)) throw new IllegalArgumentException("El pedal debe ser un valor finito.");
+        return Math.max(0, Math.min(1, valor));
+    }
+
+    public void cambiarMarcha(int direccion) {
+        if (!cajaCambios.esManual()) return;
+        int marchaAntes = cajaCambios.getMarchaActual();
+        cajaCambios.cambiarMarcha(direccion);
+        if (cajaCambios.getMarchaActual() != marchaAntes) {
+            tiempoCambioRestante = RETARDO_CAMBIO_S
+                    * Math.abs(cajaCambios.getMarchaActual() - marchaAntes);
+        }
+    }
+
+    public int getVelocidadActual() { return (int) Math.round(velocidadMps * 3.6); }
+    public double getVelocidadMps() { return velocidadMps; }
+    public int getRevoluciones() { return encendido ? (int) Math.round(revoluciones) : 0; }
+    public int getRevolucionesMaximas() { return motor.getRevolucionesMaximas(); }
+    public int getMarchaActual() { return cajaCambios.getMarchaActual(); }
+    public int getNumeroMarchas() { return cajaCambios.getNumeroMarchas(); }
+    public String getTipoTransmision() { return cajaCambios.getTipo(); }
+    public boolean isManual() { return cajaCambios.esManual(); }
+    public boolean isEncendido() { return encendido; }
+    public Motor getMotor() { return motor; }
+    public CajaCambios getCajaCambios() { return cajaCambios; }
+    public double getMasaKg() { return masaKg; }
 }

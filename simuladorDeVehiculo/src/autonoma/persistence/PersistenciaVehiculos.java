@@ -1,54 +1,212 @@
 package autonoma.persistence;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
+import autonoma.models.Carro;
+import autonoma.models.PerfilVehiculo;
+import autonoma.models.fisica.ModeloAdherenciaLongitudinal;
+import autonoma.models.fisica.ResistenciaCarretera;
+import autonoma.models.motores.Motor;
+import autonoma.models.motores.MotorGolfGtiMk85;
+import autonoma.models.transmisiones.CajaAutomatica;
+import autonoma.models.transmisiones.CajaCambios;
+import autonoma.models.transmisiones.CajaDsg7GolfGti;
+import autonoma.models.transmisiones.CajaManual;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
-/**
- * Clase que gestiona la persistencia de datos relacionados con los vehículos.
- * Permite leer la configuración de un vehículo desde un archivo de texto.
- * 
- * El archivo debe contener especificaciones en el formato:
- * - llantas <tipo_de_llantas>
- * - motor <tipo_de_motor>
- * 
- * Estas configuraciones se utilizan para inicializar las características del vehículo.
- * 
- * @author Santiago
- * @since 20250405
- * @version 1.0
- */
-public class PersistenciaVehiculos {
+/** Lee perfiles de vehículos desde un archivo clave/valor extensible. */
+public final class PersistenciaVehiculos {
+    private static final Path RUTA_CONFIGURACION = Path.of("data", "especificaciones.txt");
 
-    /**
-     * Lee la configuración del vehículo desde el archivo "data/especificaciones.txt".
-     * 
-     * @return Un arreglo de cadenas donde:
-     *         - [0] contiene el tipo de llantas.
-     *         - [1] contiene el tipo de motor.
-     *         Si ocurre un error o no se encuentra una configuración, los valores serán null.
-     */
-    public static String[] leerConfiguracionVehiculo() {
-        String[] configuracion = new String[2]; // [0] = llantas, [1] = motor
+    private PersistenciaVehiculos() { }
 
-        try (BufferedReader lector = new BufferedReader(new FileReader("data/especificaciones.txt"))) {
-            String linea;
-            while ((linea = lector.readLine()) != null) {
-                String[] partes = linea.split("\\s+"); // Divide por espacios
-                if (partes.length == 2) {
-                    if (partes[0].equalsIgnoreCase("llantas")) {
-                        configuracion[0] = partes[1];
-                    } else if (partes[0].equalsIgnoreCase("motor")) {
-                        configuracion[1] = partes[1];
-                    }
-                }
+    public static CatalogoVehiculos cargarCatalogo() throws IOException {
+        Path configuracion = localizarConfiguracion();
+        Map<String, String> valores = leerValores(configuracion);
+        Map<String, Map<String, String>> perfiles = new LinkedHashMap<>();
+        for (Map.Entry<String, String> valor : valores.entrySet()) {
+            String[] partes = valor.getKey().split("\\.", 3);
+            if (partes.length == 3 && partes[0].equals("perfil")) {
+                perfiles.computeIfAbsent(partes[1], ignorado -> new LinkedHashMap<>())
+                        .put(partes[2], valor.getValue());
             }
-        } catch (Exception e) {
-            System.out.println("Error leyendo archivo: " + e.getMessage());
         }
 
-        return configuracion;
+        List<PerfilVehiculo> lista = new ArrayList<>();
+        for (Map.Entry<String, Map<String, String>> perfil : perfiles.entrySet()) {
+            String id = perfil.getKey();
+            Map<String, String> datos = perfil.getValue();
+            Motor motor = crearMotor(requerido(datos, "motor", id));
+            CajaCambios transmision = crearTransmision(datos);
+            String nombre = datos.getOrDefault("nombre", id);
+            String interior = datos.getOrDefault("interior", "clasico");
+            double masaKg = decimal(datos, "masa", 1300);
+            double radioRuedaM = decimal(datos, "radiorueda", 0.315);
+
+            ResistenciaCarretera resistencia = crearResistencia(datos, id, masaKg);
+            ModeloAdherenciaLongitudinal adherencia = new ModeloAdherenciaLongitudinal(
+                    masaKg,
+                    decimal(datos, "adherencialongitudinal", 0.95),
+                    decimal(datos, "repartopesodelantero", 0.60),
+                    decimal(datos, "alturacentrogravedad", 0.55),
+                    decimal(datos, "batalla", 2.50),
+                    decimal(datos, "aceleracionmaximafrenadog", 0.92));
+
+            Carro carro = new Carro(motor, transmision, masaKg, radioRuedaM, resistencia, adherencia);
+            lista.add(new PerfilVehiculo(id, nombre, interior, carro));
+        }
+        return new CatalogoVehiculos(lista, valores.getOrDefault("perfilactivo", lista.get(0).getId()));
+    }
+
+    private static ResistenciaCarretera crearResistencia(Map<String, String> datos, String id, double masaKg)
+            throws IOException {
+        boolean usaCurvaResistencia = datos.containsKey("resistenciaconstanten")
+                || datos.containsKey("resistencialinealnporkmh")
+                || datos.containsKey("resistenciacuadraticanporkmh2");
+        if (usaCurvaResistencia) {
+            if (!datos.containsKey("resistenciaconstanten")
+                    || !datos.containsKey("resistencialinealnporkmh")
+                    || !datos.containsKey("resistenciacuadraticanporkmh2")) {
+                throw new IOException("El perfil " + id
+                        + " requiere los tres coeficientes de resistencia a la carretera.");
+            }
+            return ResistenciaCarretera.desdeCoeficientes(
+                    decimal(datos, "resistenciaconstanten", 0),
+                    decimal(datos, "resistencialinealnporkmh", 0),
+                    decimal(datos, "resistenciacuadraticanporkmh2", 0));
+        }
+        return ResistenciaCarretera.desdeCda(
+                masaKg,
+                decimal(datos, "cda", 0.70),
+                decimal(datos, "rodadura", 0.015));
+    }
+
+    private static Map<String, String> leerValores(Path configuracion) throws IOException {
+        Map<String, String> valores = new LinkedHashMap<>();
+        for (String linea : Files.readAllLines(configuracion)) {
+            String limpia = linea.strip();
+            if (limpia.isEmpty() || limpia.startsWith("#")) continue;
+            int separador = limpia.indexOf('=');
+            String clave;
+            String valor;
+            if (separador >= 0) {
+                clave = limpia.substring(0, separador).trim();
+                valor = limpia.substring(separador + 1).trim();
+            } else {
+                String[] partes = limpia.split("\\s+", 2);
+                if (partes.length != 2) continue;
+                clave = partes[0];
+                valor = partes[1].trim();
+            }
+            valores.put(clave.toLowerCase(Locale.ROOT), valor);
+        }
+        return valores;
+    }
+
+    /**
+     * Busca el archivo tanto desde el directorio de ejecución como desde la
+     * ubicación de las clases. Así funciona al ejecutar desde el repo, el
+     * proyecto Ant o su carpeta build/classes.
+     */
+    private static Path localizarConfiguracion() throws IOException {
+        Set<Path> bases = new LinkedHashSet<>();
+        agregarAncestros(Path.of(System.getProperty("user.dir", ".")), bases);
+        try {
+            Path clases = Path.of(PersistenciaVehiculos.class.getProtectionDomain()
+                    .getCodeSource().getLocation().toURI());
+            agregarAncestros(clases, bases);
+        } catch (URISyntaxException | SecurityException | NullPointerException ignorada) {
+            // Si el runtime no expone la ubicación de las clases, queda la búsqueda desde user.dir.
+        }
+
+        for (Path base : bases) {
+            Path directa = base.resolve(RUTA_CONFIGURACION);
+            if (Files.isRegularFile(directa)) return directa;
+
+            Path desdeRaiz = base.resolve("simuladorDeVehiculo").resolve(RUTA_CONFIGURACION);
+            if (Files.isRegularFile(desdeRaiz)) return desdeRaiz;
+        }
+
+        throw new IOException("No se encontró " + RUTA_CONFIGURACION
+                + ". Ejecuta desde la carpeta del proyecto o la raíz del repositorio.");
+    }
+
+    private static void agregarAncestros(Path ruta, Set<Path> destinos) {
+        Path actual = ruta.toAbsolutePath().normalize();
+        if (!Files.isDirectory(actual)) actual = actual.getParent();
+        while (actual != null) {
+            destinos.add(actual);
+            actual = actual.getParent();
+        }
+    }
+
+    private static String requerido(Map<String, String> datos, String clave, String perfil) throws IOException {
+        String valor = datos.get(clave);
+        if (valor == null || valor.isBlank()) {
+            throw new IOException("Falta '" + clave + "' en el perfil '" + perfil + "' de la configuración.");
+        }
+        return valor;
+    }
+
+    private static Motor crearMotor(String tipo) throws IOException {
+        return switch (tipo.trim()) {
+            case "golf-gti-mk8-5" -> new MotorGolfGtiMk85();
+            default -> throw new IOException("Motor no reconocido: " + tipo);
+        };
+    }
+
+    private static CajaCambios crearTransmision(Map<String, String> datos) throws IOException {
+        String tipo = datos.getOrDefault("transmision", "automatica");
+        return switch (tipo.toLowerCase(Locale.ROOT)) {
+            case "manual" -> new CajaManual();
+            case "automatica", "automática" -> new CajaAutomatica();
+            case "dsg7" -> {
+                if (!datos.containsKey("relacionesmarcha") && !datos.containsKey("relacionesfinales")) {
+                    yield new CajaDsg7GolfGti();
+                }
+                double[] relaciones = listaDecimales(datos, "relacionesmarcha");
+                double[] finales = listaDecimales(datos, "relacionesfinales");
+                if (relaciones.length != 7 || finales.length != relaciones.length) {
+                    throw new IOException("La DSG7 requiere siete relaciones de marcha y una relación final por marcha.");
+                }
+                double factorEntrega = decimal(datos, "factorentregaparefectivo", 0.90);
+                yield new CajaDsg7GolfGti(relaciones, finales, factorEntrega);
+            }
+            default -> throw new IOException("Transmisión no reconocida: " + tipo);
+        };
+    }
+
+    private static double[] listaDecimales(Map<String, String> datos, String clave) throws IOException {
+        String valor = datos.get(clave);
+        if (valor == null || valor.isBlank()) throw new IOException("Falta la lista '" + clave + "'.");
+        String[] elementos = valor.split(",");
+        double[] resultado = new double[elementos.length];
+        for (int i = 0; i < elementos.length; i++) {
+            try {
+                resultado[i] = Double.parseDouble(elementos[i].trim());
+            } catch (NumberFormatException error) {
+                throw new IOException("Valor numérico inválido en '" + clave + "': " + elementos[i], error);
+            }
+        }
+        return resultado;
+    }
+
+    private static double decimal(Map<String, String> datos, String clave, double valorPredeterminado)
+            throws IOException {
+        String valor = datos.get(clave);
+        if (valor == null) return valorPredeterminado;
+        try {
+            return Double.parseDouble(valor);
+        } catch (NumberFormatException error) {
+            throw new IOException("Valor numérico inválido para '" + clave + "': " + valor, error);
+        }
     }
 }
-
-
-

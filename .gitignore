@@ -12,8 +12,5 @@ out/
 .idea/
 *.iml
 
-# Godot
-game2d/.godot/
-
 # Sistema
 .DS_Store

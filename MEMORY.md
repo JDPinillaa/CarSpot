@@ -1,28 +1,49 @@
-# MEMORY.md — Diario de Estudio
+# MEMORY.md — Estado del proyecto
 
-Memoria del proyecto entre sesiones. Máximo ~50 líneas.
+Memoria breve del simulador Java; actualizar cuando cambien decisiones o estado.
 
 ## Estado actual
-- Visión de CarSpot: tres juegos; versión 1 Java/Swing existente para mejorar, versión 2 Godot 2D jugable y versión 3D futura aún sin tecnología ni alcance definidos.
-- Juego Godot 4.7 en `game2d/`: 3 coches × 3 circuitos, física propia, HUD, menú, cronometraje, fantasma, derrapes y audio sintetizado.
-- Rama `feature/game2d-v1`; cambios de `game2d/` subidos a `origin` en los commits `a0d9a17` y `b2c57e2`.
-- Revisión 2026-11-15: smoke headless pasó; prueba de 45 s cerró una vuelta válida en 33,442 s, máxima 91,3 km/h y 0 s fuera de pista.
-- README raíz presenta las tres etapas y enlaza las instrucciones de ejecución de ambas versiones existentes.
+- El repositorio se dedica únicamente a `simuladorDeVehiculo/` (Java 22/Swing).
+- `autonoma.models` está modularizado por dominio:
+  - `autonoma.models`: `Carro` y `PerfilVehiculo`.
+  - `autonoma.models.motores`: `Motor`, `CurvaParMotor` y `MotorGolfGtiMk85`.
+  - `autonoma.models.transmisiones`: `CajaCambios`, `AbstractCajaCambios`,
+    `CajaDsg7GolfGti`, `CajaAutomatica` y `CajaManual`.
+  - `autonoma.models.fisica`: `ResistenciaCarretera` y
+    `ModeloAdherenciaLongitudinal`.
+- Se eliminaron `autonoma.exceptions`, la mecánica heredada de accidente al
+  apagar a >60 km/h y las clases `Llanta`/`LlantasBuenas` del ejercicio
+  académico; `Carro` gestiona estados de forma continua y natural.
+- `javac --release 22` compila sin errores; el ejecutable `ant` no está
+  instalado en el entorno actual.
+- El perfil inicial es Volkswagen Golf GTI Mk8.5 europeo de 265 PS, DQ381-7F,
+  con integración longitudinal continua; documentación en
+  `simuladorDeVehiculo/docs/referencia-golf-gti-mk8-5.md`.
+- La curva de par representa 370 Nm entre 1.600–4.500 rpm y 195 kW entre
+  5.250–6.500 rpm; zona de ralentí y extremos no publicados son estimaciones.
+- La caja usa ratios del León 190 DQ381-7F y mapeo de finales provisional; no
+  hay tabla VW confirmada para el GTI exacto. DQ381 cambia con mapa estimado.
+- Resistencia EPA GTI EE. UU. 241 hp sirve de proxy; factor efectivo de par,
+  adherencia, reparto y CG tienen estimaciones/calibración explícitas.
+- AUTO BILD documenta unidad de prueba R19/235-35, 1.455 kg y reparto 64/36.
+  Corrida Java a 0,01 s: perfil base 5,75/21,03 s y variante con masa/radio/
+  reparto de esa prueba 5,65/20,87 s (0–100/200); pruebas publicadas 5,8/21,3.
+  No recalibrar el factor global hasta verificar relaciones y resistencia.
 
-## Decisiones
-- Física custom en vez de cuerpos físicos de Godot: comportamiento ajustable por datos y control total.
-- Coches y pistas como diccionarios en `car_specs.gd` y `track_data.gd`: añadir contenido sin duplicar lógica.
-- Arte, HUD, pista y audio generados por código: no requieren dependencias externas.
+## Decisiones permanentes
+- Mantener modelo físico separado de Swing y audio; perfiles configurables en
+  `data/especificaciones.txt`, modelos concretos en `models.motores` y
+  `models.transmisiones`.
+- No usar excepciones verificadas de negocio ni reglas discretas académicas para
+  transiciones normales de conducción.
+- Etiquetar datos como oficiales, derivados o estimados; nunca presentar una
+  calibración como especificación de fábrica.
+- Configuración localizable desde raíz, proyecto Ant o carpeta de clases; no
+  depender únicamente de `user.dir`.
+- `Cabina` se construye directamente en Java; no regenerarla desde formularios.
 
-## Aprendizajes y mejoras pendientes
-- El HUD usa `laps`; `main.gd` le entrega esa clave correctamente.
-- Reiniciar el coche invalida la vuelta y coloca `_lap_progress` en `track.distance_at(idx)` para que el siguiente cruce de meta rearme el cronómetro.
-- El audio se detiene al volver al menú y pausar, y se reanuda al iniciar/reanudar la carrera.
-- `car.on_track` acepta grip >= 0.8 (incluye pianos a 0.82); `RaceTrack.on_track()` usa ancho + 1,0 m mientras `surface_grip()` considera piano hasta +1,1 m. Unificar el límite para evitar resultados distintos en consultas.
-- El autopiloto fue conservador en el smoke de 45 s: 91,3 km/h máximos frente al límite de planificación de 45 m/s. Ajustar velocidades objetivo y revisar salidas de curva sin sacrificar estabilidad.
-- El smoke por defecto cubre solo GT Ligero / Circuito Norte; ejecutar pruebas de combinaciones con `--car=N --track=N` al validar cambios generales.
-
-## Próximos pasos
-- Ajustar y medir el autopiloto en los 3 circuitos y coches.
-- Unificar el borde de pista entre `RaceCar` y `RaceTrack`.
-- Mejorar la versión Java y definir más adelante el alcance de la versión 3D.
+## Pendientes
+- Confirmar relaciones y finales de la DQ381 del GTI Mk8.5 con documentación VW.
+- Obtener resistencia de carretera de la variante europea y medición de vmax/
+  aceleración en tramo alto para validar el límite de 250 km/h.
+- Mejorar modelo de frenado con agarre por eje, ABS y carga dinámica.
