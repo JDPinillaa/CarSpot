@@ -1,36 +1,29 @@
 package autonoma.main;
 
-import autonoma.models.PerfilVehiculo;
-import autonoma.persistence.CatalogoVehiculos;
-import autonoma.persistence.PersistenciaVehiculos;
+import autonoma.models.Carro;
+import autonoma.models.vehiculos.CatalogoVehiculos;
 import autonoma.views.Cabina;
 import java.awt.EventQueue;
+import java.util.List;
 import javax.swing.JOptionPane;
 
-/** Punto de entrada: carga la configuración y construye la presentación. */
+/** Punto de entrada: presenta el selector de garaje e inicia la cabina. */
 public final class Main {
     private Main() { }
 
     public static void main(String[] args) {
-        try {
-            CatalogoVehiculos catalogo = PersistenciaVehiculos.cargarCatalogo();
-            EventQueue.invokeLater(() -> {
-                PerfilVehiculo inicial = catalogo.getPerfilInicial();
-                PerfilVehiculo elegido = inicial;
-                if (catalogo.getPerfiles().size() > 1) {
-                    Object seleccion = JOptionPane.showInputDialog(null,
-                            "Selecciona un vehículo", "CarSpot · Garaje",
-                            JOptionPane.QUESTION_MESSAGE, null,
-                            catalogo.getPerfiles().toArray(), inicial);
-                    if (seleccion == null) return;
-                    elegido = (PerfilVehiculo) seleccion;
-                }
-                new Cabina(elegido).setVisible(true);
-            });
-        } catch (Exception error) {
-            EventQueue.invokeLater(() -> JOptionPane.showMessageDialog(null,
-                    "No se pudo iniciar el simulador: " + error.getMessage(),
-                    "Error de configuración", JOptionPane.ERROR_MESSAGE));
-        }
+        EventQueue.invokeLater(() -> {
+            List<Carro> vehiculos = CatalogoVehiculos.obtenerVehiculos();
+            Carro elegido = vehiculos.get(0);
+            if (vehiculos.size() > 1) {
+                Object seleccion = JOptionPane.showInputDialog(null,
+                        "Selecciona un vehículo", "CarSpot · Garaje",
+                        JOptionPane.QUESTION_MESSAGE, null,
+                        vehiculos.toArray(), elegido);
+                if (seleccion == null) return;
+                elegido = (Carro) seleccion;
+            }
+            new Cabina(elegido).setVisible(true);
+        });
     }
 }

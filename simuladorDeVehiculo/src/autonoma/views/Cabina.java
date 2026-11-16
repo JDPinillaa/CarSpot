@@ -1,7 +1,6 @@
 package autonoma.views;
 
 import autonoma.models.Carro;
-import autonoma.models.PerfilVehiculo;
 import autonoma.sounds.ReproductorAudio;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -28,7 +27,6 @@ import javax.swing.Timer;
 
 /** Ventana de presentación y controles; no contiene reglas de simulación. */
 public final class Cabina extends JFrame {
-    private final PerfilVehiculo perfil;
     private final Carro carro;
     private final ReproductorAudio audio = new ReproductorAudio();
     private final JPanel tablero;
@@ -37,10 +35,9 @@ public final class Cabina extends JFrame {
     private final JButton subirMarcha = new JButton("＋ Marcha");
     private final JButton bajarMarcha = new JButton("－ Marcha");
 
-    public Cabina(PerfilVehiculo perfil) {
-        this.perfil = perfil;
-        this.carro = perfil.getCarro();
-        setTitle("CarSpot · " + perfil.getNombre());
+    public Cabina(Carro carro) {
+        this.carro = carro;
+        setTitle("CarSpot · " + carro.getNombre());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(900, 690));
         setSize(1120, 780);
@@ -73,7 +70,7 @@ public final class Cabina extends JFrame {
     private JPanel crearCabecera() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
-        JLabel nombre = new JLabel(perfil.getNombre());
+        JLabel nombre = new JLabel(carro.getNombre());
         nombre.setForeground(Color.WHITE);
         nombre.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 24));
         JLabel configuracion = new JLabel(carro.getMotor().getPotenciaMaximaKw() + " kW   ·   "
@@ -214,7 +211,7 @@ public final class Cabina extends JFrame {
 
     private void mostrarEstado() {
         JOptionPane.showMessageDialog(this,
-                "Vehículo: " + perfil.getNombre() + "\nMotor encendido: " + carro.isEncendido()
+                "Vehículo: " + carro.getNombre() + "\nMotor encendido: " + carro.isEncendido()
                 + "\nVelocidad: " + carro.getVelocidadActual() + " km/h\nRevoluciones: " + carro.getRevoluciones()
                 + " rpm\nTransmisión: " + carro.getTipoTransmision() + "\nMarcha: " + carro.getMarchaActual(),
                 "Estado del vehículo", JOptionPane.INFORMATION_MESSAGE);

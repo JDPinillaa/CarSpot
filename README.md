@@ -6,7 +6,7 @@
 
 ## ¿Qué hace el simulador?
 
-- **Selector de garaje multi-vehículo**: Al iniciar, permite elegir entre distintos vehículos configurados de forma declarativa en [`simuladorDeVehiculo/data/especificaciones.txt`](simuladorDeVehiculo/data/especificaciones.txt).
+- **Selector de garaje multi-vehículo**: Al iniciar, permite elegir entre los vehículos definidos en [`CatalogoVehiculos.java`](simuladorDeVehiculo/src/autonoma/models/vehiculos/CatalogoVehiculos.java), donde cada automóvil extiende la clase abstracta [`Carro.java`](simuladorDeVehiculo/src/autonoma/models/Carro.java).
 - **Tablero de instrumentos en tiempo real**: Visualiza la velocidad ($\text{km/h}$), el régimen del motor ($\text{rpm}$), la marcha engranada y el estado del motor a $50\text{ Hz}$ ($\Delta t \approx 20\text{ ms}$).
 - **Transmisiones automáticas (DSG) y manuales**:
   - En cajas **automáticas / DSG**, la transmisión gestiona las subidas de marcha según la carga del acelerador, ejecuta reducciones rápidas (*kickdown*) buscando la zona de potencia máxima y modela la caída parcial de par durante el cambio.
@@ -45,11 +45,11 @@ El código separa estrictamente la simulación física de la interfaz gráfica y
 
 | Paquete | Responsabilidad |
 | --- | --- |
-| `autonoma.models` | Estado del vehículo (`Carro`), integración temporal y perfil ensamblado (`PerfilVehiculo`), sin dependencias de Swing ni de audio |
+| `autonoma.models` | Clase base abstracta `Carro` con el estado del vehículo y la integración longitudinal SI, sin dependencias de Swing ni de audio |
+| `autonoma.models.vehiculos` | Vehículos concretos (`GolfGtiMk85`, `SubaruBrzZd8`) que extienden `Carro` y catálogo (`CatalogoVehiculos`) |
 | `autonoma.models.fisica` | Modelos físicos reutilizables: `ResistenciaCarretera`, `ModeloAdherenciaLongitudinal` y `TipoTraccion` |
 | `autonoma.models.motores` | Clase base `Motor`, interpolador `CurvaParMotor` y curvas específicas (`MotorGolfGtiMk85`, `MotorSubaruBrzZd8`) |
 | `autonoma.models.transmisiones` | Contrato `CajaCambios`, base `AbstractCajaCambios` y transmisiones (`CajaDsg7GolfGti`, `CajaManual`, `CajaAutomatica`) |
-| `autonoma.persistence` | Carga, validación y ensamble declarativo de perfiles desde `data/especificaciones.txt` (`PersistenciaVehiculos`, `CatalogoVehiculos`) |
 | `autonoma.views` | Interfaz gráfica Swing (`Cabina`, `InteriorFactory`, `IndicadorCircular`) y atajos de teclado |
 | `autonoma.sounds` | Reproducción opcional de efectos de audio (`ReproductorAudio`) |
 
@@ -81,7 +81,7 @@ find simuladorDeVehiculo/src -name '*.java' -print0 | xargs -0 javac --release 2
 java -cp /tmp/carspot-java-build autonoma.main.Main
 ```
 
-También se puede abrir [`simuladorDeVehiculo/`](simuladorDeVehiculo/) directamente como proyecto **Ant** en NetBeans o IntelliJ IDEA. El cargador localiza `data/especificaciones.txt` tanto desde la raíz del repositorio como desde la carpeta del proyecto o de las clases compiladas.
+También se puede abrir [`simuladorDeVehiculo/`](simuladorDeVehiculo/) directamente como proyecto **Ant** en NetBeans o IntelliJ IDEA.
 
 ### Controles en la cabina
 
@@ -94,8 +94,8 @@ También se puede abrir [`simuladorDeVehiculo/`](simuladorDeVehiculo/) directame
 
 ## Cómo agregar un nuevo vehículo
 
-1. **Curva de par motor**: Crea una subclase de [`Motor`](simuladorDeVehiculo/src/autonoma/models/motores/Motor.java) en `autonoma.models.motores` definiendo velocidad máxima, potencia, ralentí, corte y los arreglos `rpm`/`Nm`, y regístrala en [`PersistenciaVehiculos.crearMotor`](simuladorDeVehiculo/src/autonoma/persistence/PersistenciaVehiculos.java).
-2. **Perfil en configuración**: Añade un bloque `perfil.<id>.*` en [`simuladorDeVehiculo/data/especificaciones.txt`](simuladorDeVehiculo/data/especificaciones.txt) indicando `motor`, `transmision` (`manual`, `automatica` o `dsg7`), `traccion` (`delantera`, `trasera` o `integral`), `relacionesMarcha`, `relacionFinal` (o `relacionesFinales`), `masa`, `radioRueda`, coeficientes de resistencia y parámetros de adherencia.
+1. **Motor**: Crea una subclase de [`Motor`](simuladorDeVehiculo/src/autonoma/models/motores/Motor.java) en `autonoma.models.motores` definiendo velocidad máxima, potencia, ralentí, corte y los arreglos `rpm`/`Nm`.
+2. **Vehículo**: Crea una subclase de [`Carro`](simuladorDeVehiculo/src/autonoma/models/Carro.java) en `autonoma.models.vehiculos` ensamblando su motor, transmisión (`CajaManual`, `CajaAutomatica` o caja específica), masa, radio de rueda, [`ResistenciaCarretera`](simuladorDeVehiculo/src/autonoma/models/fisica/ResistenciaCarretera.java) y [`ModeloAdherenciaLongitudinal`](simuladorDeVehiculo/src/autonoma/models/fisica/ModeloAdherenciaLongitudinal.java), y regístrala en [`CatalogoVehiculos`](simuladorDeVehiculo/src/autonoma/models/vehiculos/CatalogoVehiculos.java).
 3. **Documentación**: Registra las fuentes oficiales, derivaciones y calibraciones del nuevo modelo en `simuladorDeVehiculo/docs/`.
 
 ---
@@ -104,18 +104,16 @@ También se puede abrir [`simuladorDeVehiculo/`](simuladorDeVehiculo/) directame
 
 ```text
 simuladorDeVehiculo/
-├── data/
-│   └── especificaciones.txt          # Catálogo declarativo de perfiles y parámetros físicos
 ├── docs/
 │   ├── referencia-golf-gti-mk8-5.md  # Fuentes, supuestos y validación del Golf GTI Mk8.5
 │   └── referencia-subaru-brz-zd8.md  # Fuentes, supuestos y validación del Subaru BRZ 2.4
 ├── src/autonoma/
 │   ├── main/                         # Punto de entrada y selector de garaje (Main)
-│   ├── models/                       # Vehículo (Carro, PerfilVehiculo)
+│   ├── models/                       # Clase base abstracta Carro
+│   │   ├── vehiculos/                # Vehículos concretos (GolfGtiMk85, SubaruBrzZd8) y CatalogoVehiculos
 │   │   ├── fisica/                   # Resistencia en carretera, adherencia y tipo de tracción
 │   │   ├── motores/                  # Motor base, interpolador de par y motores por vehículo
 │   │   └── transmisiones/            # Contrato de caja y transmisiones manuales/automáticas/DSG
-│   ├── persistence/                  # Lectura y validación del catálogo de vehículos
 │   ├── sounds/                       # Reproductor de efectos de sonido opcionales
 │   └── views/                        # Cabina Swing, tablero e indicadores circulares
 ├── nbproject/                        # Configuración del proyecto Ant/NetBeans

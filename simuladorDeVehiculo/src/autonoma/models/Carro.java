@@ -5,11 +5,12 @@ import autonoma.models.fisica.ResistenciaCarretera;
 import autonoma.models.motores.Motor;
 import autonoma.models.transmisiones.CajaCambios;
 
-/** Dinámica longitudinal SI del vehículo; no depende de Swing ni de audio. */
-public class Carro {
-    private static final double RETARDO_CAMBIO_S = 0.16; // estimación de una DSG con doble embrague
+/** Base abstracta con el estado y la dinámica longitudinal SI de un vehículo. */
+public abstract class Carro {
+    private static final double RETARDO_CAMBIO_S = 0.16; // estimación de retardo en cambio
     private static final double FRACCION_PAR_DURANTE_CAMBIO = 0.75; // transferencia de par estimada
 
+    private final String nombre;
     private final Motor motor;
     private final CajaCambios cajaCambios;
     private final double masaKg;
@@ -23,9 +24,12 @@ public class Carro {
     private double revoluciones;
     private double tiempoCambioRestante;
 
-    public Carro(Motor motor, CajaCambios cajaCambios, double masaKg, double radioRuedaM,
-            ResistenciaCarretera resistenciaCarretera,
+    protected Carro(String nombre, Motor motor, CajaCambios cajaCambios, double masaKg,
+            double radioRuedaM, ResistenciaCarretera resistenciaCarretera,
             ModeloAdherenciaLongitudinal modeloAdherencia) {
+        if (nombre == null || nombre.isBlank()) {
+            throw new IllegalArgumentException("El nombre del vehículo es obligatorio.");
+        }
         if (motor == null || cajaCambios == null
                 || resistenciaCarretera == null || modeloAdherencia == null) {
             throw new IllegalArgumentException("El tren motriz y los modelos físicos son obligatorios.");
@@ -33,6 +37,7 @@ public class Carro {
         if (!Double.isFinite(masaKg) || masaKg <= 0 || !Double.isFinite(radioRuedaM) || radioRuedaM <= 0) {
             throw new IllegalArgumentException("La masa y el radio de rueda deben ser positivos y finitos.");
         }
+        this.nombre = nombre;
         this.motor = motor;
         this.cajaCambios = cajaCambios;
         this.masaKg = masaKg;
@@ -102,7 +107,7 @@ public class Carro {
         velocidadMps = Math.max(0, velocidadMps + aceleracion * paso);
         double velocidadMaxima = motor.getVelocidadMaxima() / 3.6;
         if (velocidadMps >= velocidadMaxima) {
-            velocidadMps = velocidadMaxima; // limitador electrónico publicado para el GTI
+            velocidadMps = velocidadMaxima;
             if (acelerador > 0) revoluciones = Math.min(revoluciones, motor.getRevolucionesMaximas());
         }
     }
@@ -134,6 +139,7 @@ public class Carro {
         }
     }
 
+    public String getNombre() { return nombre; }
     public int getVelocidadActual() { return (int) Math.round(velocidadMps * 3.6); }
     public double getVelocidadMps() { return velocidadMps; }
     public int getRevoluciones() { return encendido ? (int) Math.round(revoluciones) : 0; }
@@ -146,4 +152,7 @@ public class Carro {
     public Motor getMotor() { return motor; }
     public CajaCambios getCajaCambios() { return cajaCambios; }
     public double getMasaKg() { return masaKg; }
+
+    @Override
+    public String toString() { return nombre; }
 }

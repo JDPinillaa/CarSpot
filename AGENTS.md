@@ -16,23 +16,24 @@ proyectos ajenos al simulador.
 - También se puede abrir `simuladorDeVehiculo/` como proyecto Ant en NetBeans.
 
 ## Arquitectura
-- `models.Carro` y `models.PerfilVehiculo`: estado del vehículo, integración
-  longitudinal y ensamble del perfil; no dependen de Swing ni de audio.
-- `models.fisica`: `ResistenciaCarretera` y `ModeloAdherenciaLongitudinal`
-  (cálculos físicos encapsulados y reutilizables).
+- `models.Carro`: clase abstracta con el estado del vehículo y la integración
+  longitudinal SI; no depende de Swing ni de audio.
+- `models.vehiculos`: subclases concretas de `Carro` (`GolfGtiMk85`,
+  `SubaruBrzZd8`) y `CatalogoVehiculos`.
+- `models.fisica`: `ResistenciaCarretera`, `ModeloAdherenciaLongitudinal` y
+  `TipoTraccion` (cálculos físicos encapsulados y reutilizables).
 - `models.motores`: `Motor`, `CurvaParMotor` y motores concretos por vehículo.
 - `models.transmisiones`: `CajaCambios`, `AbstractCajaCambios` y transmisiones
   concretas.
-- `persistence.PersistenciaVehiculos`: carga y valida `data/especificaciones.txt`.
 - `views`: cabina, tablero e indicadores Swing.
 - `sounds`: efectos de audio opcionales.
-- `docs/referencia-golf-gti-mk8-5.md`: fuentes, supuestos, calibración y pendientes.
+- `docs/`: fuentes, supuestos, calibración y pendientes de cada vehículo.
 
 ## Convenciones
 - Interfaz, nombres nuevos y comentarios en español; código Java tipado y
   responsabilidades de física y presentación separadas.
-- Los perfiles viven en `data/especificaciones.txt`; las curvas específicas de
-  motor y cajas se implementan en modelos dedicados.
+- Cada vehículo se implementa como subclase de `Carro` en `models.vehiculos`,
+  con sus curvas específicas en `models.motores` y `models.transmisiones`.
 - Marca cada dato como oficial, derivado o estimado/calibrado. No presentes
   calibraciones ni datos de otro vehículo como especificaciones de fábrica.
 - Mantén README y MEMORY alineados con el contenido Java existente.
