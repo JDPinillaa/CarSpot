@@ -44,23 +44,22 @@ siendo provisionales; no deben citarse como especificaciones oficiales.
 - Usa **Encender / Apagar** para controlar el motor.
 - Mantén presionado **Acelerador** o **Freno** para aplicar cada pedal.
 - La caja automática cambia según las revoluciones y la demanda; la caja manual
-  permite subir y bajar marcha.
+  permite subir y bajar marcha con los botones en pantalla o las teclas **`+`** y **`-`**.
 - El tablero muestra velocidad en km/h, revoluciones por minuto y marcha actual.
-- Los interiores clásico y deportivo cambian la presentación de los indicadores.
 
 ## Organización del código
 
 | Paquete / clase | Responsabilidad |
 | --- | --- |
 | `models.Carro` | Estado e integración del vehículo, separado de Swing y audio |
-| `models.PerfilVehiculo` | Ensamble del vehículo y su presentación |
+| `models.PerfilVehiculo` | Ensamble del vehículo identificable en el catálogo |
 | `models.motores.Motor` / `CurvaParMotor` | Régimen, configuración base y curva interpolada de par |
 | `models.motores.MotorGolfGtiMk85` / `MotorSubaruBrzZd8` | Curvas de par de los motores EA888 evo4 (265 PS) y FA24D (234 PS) |
 | `models.transmisiones.CajaCambios` | Contrato de transmisión y cajas concretas (`CajaDsg7GolfGti`, `CajaAutomatica`, `CajaManual`) |
 | `models.fisica.ResistenciaCarretera` | Rodadura y resistencia aerodinámica |
 | `models.fisica.ModeloAdherenciaLongitudinal` / `TipoTraccion` | Límite de tracción según eje motriz (FWD/RWD/AWD) y fuerza de frenado |
 | `persistence.PersistenciaVehiculos` | Lectura y validación de perfiles |
-| `views.Cabina` | Ventana, controles y ciclo de actualización |
-| `views.InteriorFactory` | Composición visual de los interiores |
+| `views.Cabina` | Ventana, controles, atajos de teclado y ciclo de actualización |
+| `views.InteriorFactory` | Construcción visual del tablero de instrumentos |
 | `views.IndicadorCircular` | Indicadores de velocidad y revoluciones |
 | `sounds.ReproductorAudio` | Efectos de sonido opcionales |

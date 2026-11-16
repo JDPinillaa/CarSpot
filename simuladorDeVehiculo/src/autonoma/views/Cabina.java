@@ -9,14 +9,20 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
 import javax.swing.BorderFactory;
+import javax.swing.InputMap;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 import javax.swing.Timer;
 
@@ -25,7 +31,7 @@ public final class Cabina extends JFrame {
     private final PerfilVehiculo perfil;
     private final Carro carro;
     private final ReproductorAudio audio = new ReproductorAudio();
-    private final JPanel interior;
+    private final JPanel tablero;
     private final JLabel estado = new JLabel("MOTOR APAGADO", SwingConstants.CENTER);
     private final JLabel marcha = new JLabel("Marcha 1", SwingConstants.CENTER);
     private final JButton subirMarcha = new JButton("＋ Marcha");
@@ -44,9 +50,10 @@ public final class Cabina extends JFrame {
         root.setBackground(new Color(16, 20, 23));
         root.setBorder(BorderFactory.createEmptyBorder(22, 28, 24, 28));
         root.add(crearCabecera(), BorderLayout.NORTH);
-        interior = InteriorFactory.crear(perfil, carro);
-        root.add(interior, BorderLayout.CENTER);
+        tablero = InteriorFactory.crear(carro);
+        root.add(tablero, BorderLayout.CENTER);
         root.add(crearControles(), BorderLayout.SOUTH);
+        configurarAtajosTeclado(root);
         setContentPane(root);
 
         final long[] instanteAnterior = {System.nanoTime()};
@@ -71,7 +78,7 @@ public final class Cabina extends JFrame {
         nombre.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 24));
         JLabel configuracion = new JLabel(carro.getMotor().getPotenciaMaximaKw() + " kW   ·   "
                 + carro.getMotor().getVelocidadMaxima() + " km/h máx.   ·   "
-                + carro.getTipoTransmision() + "   ·   Interior " + perfil.getInterior());
+                + carro.getTipoTransmision());
         configuracion.setForeground(new Color(163, 174, 179));
         configuracion.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 13));
         panel.add(nombre, BorderLayout.WEST);
@@ -117,20 +124,47 @@ public final class Cabina extends JFrame {
         });
         controlarPedal(acelerar, true);
         controlarPedal(frenar, false);
-        subirMarcha.addActionListener(e -> {
-            carro.cambiarMarcha(1);
-            actualizarTablero();
-        });
-        bajarMarcha.addActionListener(e -> {
-            carro.cambiarMarcha(-1);
-            actualizarTablero();
-        });
+        subirMarcha.addActionListener(e -> cambiarMarcha(1));
+        bajarMarcha.addActionListener(e -> cambiarMarcha(-1));
         informacion.addActionListener(e -> mostrarEstado());
         botones.add(encender); botones.add(apagar); botones.add(acelerar); botones.add(frenar);
         if (carro.isManual()) { botones.add(bajarMarcha); botones.add(subirMarcha); }
         botones.add(informacion);
         contenedor.add(botones, BorderLayout.CENTER);
         return contenedor;
+    }
+
+    private void configurarAtajosTeclado(JPanel root) {
+        if (!carro.isManual()) return;
+        InputMap entradas = root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        ActionMap acciones = root.getActionMap();
+
+        entradas.put(KeyStroke.getKeyStroke('+'), "subirMarcha");
+        entradas.put(KeyStroke.getKeyStroke('='), "subirMarcha");
+        entradas.put(KeyStroke.getKeyStroke(KeyEvent.VK_PLUS, 0), "subirMarcha");
+        entradas.put(KeyStroke.getKeyStroke(KeyEvent.VK_ADD, 0), "subirMarcha");
+
+        entradas.put(KeyStroke.getKeyStroke('-'), "bajarMarcha");
+        entradas.put(KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, 0), "bajarMarcha");
+        entradas.put(KeyStroke.getKeyStroke(KeyEvent.VK_SUBTRACT, 0), "bajarMarcha");
+
+        acciones.put("subirMarcha", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                cambiarMarcha(1);
+            }
+        });
+        acciones.put("bajarMarcha", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                cambiarMarcha(-1);
+            }
+        });
+    }
+
+    private void cambiarMarcha(int direccion) {
+        carro.cambiarMarcha(direccion);
+        actualizarTablero();
     }
 
     private JButton boton(String texto, Color fondo) {
@@ -167,9 +201,9 @@ public final class Cabina extends JFrame {
     }
 
     private void actualizarTablero() {
-        IndicadorCircular velocidad = (IndicadorCircular) interior.getClientProperty("medidor.velocidad");
-        IndicadorCircular rpm = (IndicadorCircular) interior.getClientProperty("medidor.rpm");
-        JLabel datosTransmision = (JLabel) interior.getClientProperty("etiqueta.transmision");
+        IndicadorCircular velocidad = (IndicadorCircular) tablero.getClientProperty("medidor.velocidad");
+        IndicadorCircular rpm = (IndicadorCircular) tablero.getClientProperty("medidor.rpm");
+        JLabel datosTransmision = (JLabel) tablero.getClientProperty("etiqueta.transmision");
         velocidad.setValor(carro.getVelocidadActual());
         rpm.setValor(carro.getRevoluciones());
         estado.setText(carro.isEncendido() ? "MOTOR ENCENDIDO" : "MOTOR APAGADO");

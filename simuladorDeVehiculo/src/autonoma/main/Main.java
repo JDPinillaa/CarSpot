@@ -19,7 +19,7 @@ public final class Main {
                 PerfilVehiculo elegido = inicial;
                 if (catalogo.getPerfiles().size() > 1) {
                     Object seleccion = JOptionPane.showInputDialog(null,
-                            "Selecciona vehículo e interior", "CarSpot · Garaje",
+                            "Selecciona un vehículo", "CarSpot · Garaje",
                             JOptionPane.QUESTION_MESSAGE, null,
                             catalogo.getPerfiles().toArray(), inicial);
                     if (seleccion == null) return;

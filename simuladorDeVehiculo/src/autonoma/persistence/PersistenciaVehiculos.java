@@ -50,7 +50,6 @@ public final class PersistenciaVehiculos {
             Motor motor = crearMotor(requerido(datos, "motor", id));
             CajaCambios transmision = crearTransmision(datos);
             String nombre = datos.getOrDefault("nombre", id);
-            String interior = datos.getOrDefault("interior", "clasico");
             double masaKg = decimal(datos, "masa", 1300);
             double radioRuedaM = decimal(datos, "radiorueda", 0.315);
             TipoTraccion traccion = crearTraccion(datos.getOrDefault("traccion", "delantera"));
@@ -66,7 +65,7 @@ public final class PersistenciaVehiculos {
                     traccion);
 
             Carro carro = new Carro(motor, transmision, masaKg, radioRuedaM, resistencia, adherencia);
-            lista.add(new PerfilVehiculo(id, nombre, interior, carro));
+            lista.add(new PerfilVehiculo(id, nombre, carro));
         }
         return new CatalogoVehiculos(lista, valores.getOrDefault("perfilactivo", lista.get(0).getId()));
     }

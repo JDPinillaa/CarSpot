@@ -16,7 +16,10 @@ Memoria breve del simulador Java; actualizar cuando cambien decisiones o estado.
     `ModeloAdherenciaLongitudinal` y `TipoTraccion` (`DELANTERA`, `TRASERA`,
     `INTEGRAL`).
 - Se eliminaron `autonoma.exceptions`, la mecánica heredada de accidente al
-  apagar a >60 km/h y las clases `Llanta`/`LlantasBuenas`.
+  apagar a >60 km/h, las clases `Llanta`/`LlantasBuenas` y el selector de tipo
+  de interior (`clasico`/`deportivo`).
+- En vehículos manuales, `Cabina` permite subir y bajar marcha tanto con los
+  botones en pantalla como con las teclas `+` y `-`.
 - Dos perfiles activos en el selector inicial:
   1. **Volkswagen Golf GTI Mk8.5 europeo (265 PS, DQ381-7F, FWD)**:
      0–100 km/h en 5,75 s y 0–200 km/h en 21,03 s (`dt = 0,01 s`); documentado

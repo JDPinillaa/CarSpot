@@ -24,7 +24,7 @@ proyectos ajenos al simulador.
 - `models.transmisiones`: `CajaCambios`, `AbstractCajaCambios` y transmisiones
   concretas.
 - `persistence.PersistenciaVehiculos`: carga y valida `data/especificaciones.txt`.
-- `views`: cabina, interiores e indicadores Swing.
+- `views`: cabina, tablero e indicadores Swing.
 - `sounds`: efectos de audio opcionales.
 - `docs/referencia-golf-gti-mk8-5.md`: fuentes, supuestos, calibración y pendientes.
 
