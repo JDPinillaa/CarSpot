@@ -1,6 +1,6 @@
 # Simulador de Vehículos CarSpot
 
-Aplicación de escritorio Java/Swing con dinámica longitudinal propia. Incluye dos
+**Versión 1.1** · Aplicación de escritorio Java/Swing con dinámica longitudinal propia. Incluye dos
 vehículos implementados como subclases de `Carro` en `autonoma.models.vehiculos`:
 - **Volkswagen Golf GTI Mk8.5 europeo** (265 PS, tracción delantera, DSG7):
   [`docs/referencia-golf-gti-mk8-5.md`](docs/referencia-golf-gti-mk8-5.md)
@@ -24,6 +24,25 @@ java -cp /tmp/carspot-java-build autonoma.main.Main
 
 También puedes abrir esta carpeta como proyecto Ant en NetBeans.
 
+## Pruebas automáticas
+
+La carpeta `test/` contiene una suite determinista sin dependencias externas.
+Compila el simulador y ejecútala desde la raíz del repositorio con:
+
+```bash
+./simuladorDeVehiculo/pruebas.sh
+```
+
+O con Ant:
+
+```bash
+ant pruebas
+```
+
+Comprueba aceleraciones, velocidad máxima, frenada, protección de
+sobrerrevoluciones, rango de marchas de la DSG y apagado en marcha. Devuelve un
+código de salida distinto de cero si falla alguna comprobación.
+
 ## Modelo de vehículos
 
 Cada automóvil extiende la clase abstracta `models.Carro` dentro del paquete
@@ -36,8 +55,11 @@ en la carpeta `docs/`.
 
 ## Controles y tablero
 
-- Usa **Encender / Apagar** para controlar el motor.
-- Mantén presionado **Acelerador** o **Freno** para aplicar cada pedal.
+- Usa **Encender / Apagar** para controlar el motor. Al apagarlo en movimiento con
+  una marcha engranada, la transmisión sigue conectada y el motor frena por
+  fricción y bombeo: desde 100 km/h el vehículo se detiene en unos 36–38 s.
+- Mantén presionado **Acelerador** o **Freno**, con el mouse o con las teclas
+  **`W`** y **`S`**. Los pedales se liberan al perder el foco de la ventana.
 - La caja automática cambia según las revoluciones y la demanda; la caja manual
   permite subir y bajar marcha con los botones en pantalla o las teclas **`+`** y **`-`**.
 - El tablero muestra velocidad en km/h, revoluciones por minuto y marcha actual.
@@ -58,3 +80,4 @@ en la carpeta `docs/`.
 | `views.InteriorFactory` | Construcción visual del tablero de instrumentos |
 | `views.IndicadorCircular` | Indicadores de velocidad y revoluciones |
 | `sounds.ReproductorAudio` | Efectos de sonido opcionales |
+| `autonoma.tests.PruebasSimulador` | Pruebas deterministas del modelo, sin dependencias |

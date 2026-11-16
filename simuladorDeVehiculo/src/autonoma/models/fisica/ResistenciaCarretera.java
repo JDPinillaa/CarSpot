@@ -41,7 +41,7 @@ public final class ResistenciaCarretera {
     }
 
     public double calcularFuerzaN(double velocidadMps) {
-        if (!Double.isFinite(velocidadMps) || velocidadMps <= 0.05) return 0;
+        if (!Double.isFinite(velocidadMps) || velocidadMps <= 0) return 0;
         double velocidadKmh = velocidadMps * 3.6;
         return fuerzaConstanteN + fuerzaLinealNPorKmh * velocidadKmh
                 + fuerzaCuadraticaNPorKmh2 * velocidadKmh * velocidadKmh;

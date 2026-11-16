@@ -10,6 +10,24 @@
 <project name="simulador" default="default" basedir=".">
     <description>Builds, tests, and runs the project simulador.</description>
     <import file="nbproject/build-impl.xml"/>
+
+    <target name="pruebas" description="Compila y ejecuta las pruebas del modelo físico." depends="compile">
+        <mkdir dir="${build.test.classes.dir}"/>
+        <javac srcdir="${test.src.dir}" destdir="${build.test.classes.dir}"
+               source="${javac.source}" target="${javac.target}"
+               includeantruntime="false">
+            <classpath>
+                <pathelement location="${build.classes.dir}"/>
+            </classpath>
+        </javac>
+        <java classname="autonoma.tests.PruebasSimulador" fork="true" failonerror="true">
+            <classpath>
+                <pathelement location="${build.test.classes.dir}"/>
+                <pathelement location="${build.classes.dir}"/>
+            </classpath>
+        </java>
+    </target>
+
     <!--
 
     There exist several targets which are by default empty and which can be 

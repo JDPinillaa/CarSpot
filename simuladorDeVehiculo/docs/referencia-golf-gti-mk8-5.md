@@ -135,9 +135,17 @@ embragues. El limitador actúa a 250 km/h; los pedales mantienen demanda continu
 El mapa de cambios también es estimado: sube de marcha cerca de 1.600 rpm con
 carga baja, 2.600 rpm a carga media-baja, 4.200 rpm a carga media y 6.350 rpm
 cerca de plena carga. En la simulación, al levantar el acelerador a 100 km/h,
-la caja pasa de tercera a séptima en aproximadamente 1,5 s y estabiliza cerca
-de 1.635 rpm a 98,8 km/h, coherente por construcción con el N/V usado como
-referencia; no es una medición del mapa de cambios del fabricante.
+la caja pasa de tercera a quinta en unos 0,3 s y a séptima en unos 0,5 s
+—cuatro cambios consecutivos, con 0,16 s de retardo entre ellos—, y estabiliza
+cerca de 1.635 rpm a 98,8 km/h, coherente por construcción con el N/V usado
+como referencia; no es una medición del mapa de cambios del fabricante.
+
+Al apagar el motor con una marcha engranada, el modelo mantiene la transmisión
+conectada y aplica un par de fricción y bombeo **estimado** del 18 % del par de
+la curva a las rpm mecánicas, sin combustión. Con ese supuesto, el Golf apagado
+a 100 km/h en 3.ª se detiene en unos 38 s y 420 m. El coeficiente no es un dato
+de Volkswagen; para simular punto muerto o embrague desacoplado haría falta
+modelar esa desconexión.
 
 ## Implementación y calibración inicial
 
@@ -145,8 +153,9 @@ El perfil `golf-gti-mk8-5` ya usa el integrador longitudinal, curva de par
 interpolada, resistencias, limitador electrónico y DQ381-7F. En cada cambio se
 retiene 75% de la fuerza durante 0,16 s (estimaciones de transferencia de par y
 duración); un kickdown de varias marchas acumula el retardo. Acelerador y freno
-funcionan al mantener presionados los botones. Con la curva EPA aplicada, la
-simulación cargada desde `especificaciones.txt` da:
+funcionan al mantener presionados los botones o las teclas `W`/`S`, y se liberan
+al perder el foco de la ventana. Con la curva de par y los parámetros actuales,
+la corrida da:
 
 La curva de par conserva exactamente 195 kW entre 5.250 y 6.500 rpm: los puntos
 de par intermedios se derivan de `T = P / ω` y evitan que una interpolación
@@ -221,11 +230,11 @@ sensible al factor de entrega y a la resistencia EPA proxy; no es velocidad
 publicada ni meta del perfil. El Golf de referencia está limitado a 250 km/h.
 
 La curva interpola puntos oficiales y estima zonas no publicadas. Al frenar a
-fondo desde 100 km/h, el modelo recorre 35,81 m; AUTO BILD midió 34,6 m en frío
-y 33,4 m en caliente con neumáticos 235/35 R19. Desde 80 km/h el modelo da
-23,01 m, frente a 26,37 m de Autocar India; las pruebas difieren en ruedas y
+fondo desde 100 km/h, el modelo recorre unos 36,2 m; AUTO BILD midió 34,6 m en
+frío y 33,4 m en caliente con neumáticos 235/35 R19. Desde 80 km/h el modelo da
+23,2 m, frente a 26,37 m de Autocar India; las pruebas difieren en ruedas y
 condiciones y muestran que una sola desaceleración constante no reproduce
-todas las mediciones. Desde 250 km/h la predicción es 6,33 s y 214,96 m,
+todas las mediciones. Desde 250 km/h la predicción es 6,31 s y 214,9 m,
 sin dato comparable encontrado. Aún no se
 modelan inclinación, viento, temperatura, variación de adherencia, inercia
 rotacional, control de lanzamiento ni degradación térmica de frenos. La fórmula
@@ -236,7 +245,7 @@ modelo completo de neumáticos o suspensión.
 
 1. Obtener las relaciones por marcha y los finales de los dos trenes de la
    DQ381-7F europea, además del radio dinámico, con fuentes del mercado exacto.
-   Cargar esos datos en `especificaciones.txt` cuando haya fuentes verificables.
+   Incorporar esos datos al perfil `GolfGtiMk85` cuando haya fuentes verificables.
 2. Explicar y reducir la desviación de 0–160/0–200 frente a pruebas
    instrumentadas comparables; primero reproducir la configuración de prueba
    (masa/ruedas/reparto conocidos) antes de calibrar parámetros globales.
