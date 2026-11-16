@@ -2,9 +2,10 @@
 
 ## Proyecto
 Este repositorio se dedica al simulador de vehículos Java/Swing ubicado en
-`simuladorDeVehiculo/`. El vehículo real de referencia actual es el Volkswagen
-Golf GTI Mk8.5 europeo de 265 PS. Prioriza datos trazables y un modelo que pueda
-extenderse a otros vehículos; evita incorporar proyectos ajenos al simulador.
+`simuladorDeVehiculo/`. Los vehículos de referencia actuales son el Volkswagen
+Golf GTI Mk8.5 europeo (265 PS, DSG7, FWD) y el Subaru BRZ ZD8 2.4 (234 PS,
+6MT, RWD). Prioriza datos trazables y un modelo extensible; evita incorporar
+proyectos ajenos al simulador.
 
 ## Stack y ejecución
 - Java 22, Swing y Ant/NetBeans; no se requieren dependencias externas.
@@ -15,23 +16,24 @@ extenderse a otros vehículos; evita incorporar proyectos ajenos al simulador.
 - También se puede abrir `simuladorDeVehiculo/` como proyecto Ant en NetBeans.
 
 ## Arquitectura
-- `models.Carro` y `models.PerfilVehiculo`: estado del vehículo, integración
-  longitudinal y ensamble del perfil; no dependen de Swing ni de audio.
-- `models.fisica`: `ResistenciaCarretera` y `ModeloAdherenciaLongitudinal`
-  (cálculos físicos encapsulados y reutilizables).
+- `models.Carro`: clase abstracta con el estado del vehículo y la integración
+  longitudinal SI; no depende de Swing ni de audio.
+- `models.vehiculos`: subclases concretas de `Carro` (`GolfGtiMk85`,
+  `SubaruBrzZd8`) y `CatalogoVehiculos`.
+- `models.fisica`: `ResistenciaCarretera`, `ModeloAdherenciaLongitudinal` y
+  `TipoTraccion` (cálculos físicos encapsulados y reutilizables).
 - `models.motores`: `Motor`, `CurvaParMotor` y motores concretos por vehículo.
 - `models.transmisiones`: `CajaCambios`, `AbstractCajaCambios` y transmisiones
   concretas.
-- `persistence.PersistenciaVehiculos`: carga y valida `data/especificaciones.txt`.
-- `views`: cabina, interiores e indicadores Swing.
+- `views`: cabina, tablero e indicadores Swing.
 - `sounds`: efectos de audio opcionales.
-- `docs/referencia-golf-gti-mk8-5.md`: fuentes, supuestos, calibración y pendientes.
+- `docs/`: fuentes, supuestos, calibración y pendientes de cada vehículo.
 
 ## Convenciones
 - Interfaz, nombres nuevos y comentarios en español; código Java tipado y
   responsabilidades de física y presentación separadas.
-- Los perfiles viven en `data/especificaciones.txt`; las curvas específicas de
-  motor y cajas se implementan en modelos dedicados.
+- Cada vehículo se implementa como subclase de `Carro` en `models.vehiculos`,
+  con sus curvas específicas en `models.motores` y `models.transmisiones`.
 - Marca cada dato como oficial, derivado o estimado/calibrado. No presentes
   calibraciones ni datos de otro vehículo como especificaciones de fábrica.
 - Mantén README y MEMORY alineados con el contenido Java existente.
