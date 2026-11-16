@@ -4,7 +4,8 @@ Memoria breve del simulador Java; actualizar cuando cambien decisiones o estado.
 
 ## Estado actual
 - Repositorio dedicado a `simuladorDeVehiculo/` (Java 22/Swing). Versión **1.1.0**
-  en la rama `feature/simulador-v1.1`; `CHANGELOG.md` resume los cambios.
+  en la rama `feature/simulador-v1.1`, publicada con el PR #4 hacia `main`;
+  `CHANGELOG.md` resume los cambios.
 - `autonoma.models` modularizado por dominio:
   - `autonoma.models`: `Carro` (clase abstracta, integración longitudinal,
     corte de inyección, protección al reducir y freno motor).
