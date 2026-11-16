@@ -1,17 +1,15 @@
 package autonoma.persistence;
 
-import autonoma.models.CajaAutomatica;
-import autonoma.models.CajaCambios;
-import autonoma.models.CajaManual;
-import autonoma.models.Llanta;
-import autonoma.models.LlantasBaratas;
-import autonoma.models.LlantasBuenas;
-import autonoma.models.LlantasBonitas;
-import autonoma.models.Motor;
-import autonoma.models.Motor1000;
-import autonoma.models.Motor2000;
-import autonoma.models.Motor3000;
+import autonoma.models.Carro;
 import autonoma.models.PerfilVehiculo;
+import autonoma.models.fisica.ModeloAdherenciaLongitudinal;
+import autonoma.models.fisica.ResistenciaCarretera;
+import autonoma.models.motores.Motor;
+import autonoma.models.motores.MotorGolfGtiMk85;
+import autonoma.models.transmisiones.CajaAutomatica;
+import autonoma.models.transmisiones.CajaCambios;
+import autonoma.models.transmisiones.CajaDsg7GolfGti;
+import autonoma.models.transmisiones.CajaManual;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -42,19 +40,53 @@ public final class PersistenciaVehiculos {
             }
         }
 
-        // Compatibilidad con el formato antiguo: motor/llantas en la raíz.
-        if (perfiles.isEmpty()) perfiles.put("principal", valores);
         List<PerfilVehiculo> lista = new ArrayList<>();
         for (Map.Entry<String, Map<String, String>> perfil : perfiles.entrySet()) {
+            String id = perfil.getKey();
             Map<String, String> datos = perfil.getValue();
-            Motor motor = crearMotor(requerido(datos, "motor", perfil.getKey()));
-            Llanta llantas = crearLlantas(requerido(datos, "llantas", perfil.getKey()));
-            CajaCambios transmision = crearTransmision(datos.getOrDefault("transmision", "automatica"));
-            String nombre = datos.getOrDefault("nombre", perfil.getKey());
+            Motor motor = crearMotor(requerido(datos, "motor", id));
+            CajaCambios transmision = crearTransmision(datos);
+            String nombre = datos.getOrDefault("nombre", id);
             String interior = datos.getOrDefault("interior", "clasico");
-            lista.add(new PerfilVehiculo(perfil.getKey(), nombre, interior, motor, llantas, transmision));
+            double masaKg = decimal(datos, "masa", 1300);
+            double radioRuedaM = decimal(datos, "radiorueda", 0.315);
+
+            ResistenciaCarretera resistencia = crearResistencia(datos, id, masaKg);
+            ModeloAdherenciaLongitudinal adherencia = new ModeloAdherenciaLongitudinal(
+                    masaKg,
+                    decimal(datos, "adherencialongitudinal", 0.95),
+                    decimal(datos, "repartopesodelantero", 0.60),
+                    decimal(datos, "alturacentrogravedad", 0.55),
+                    decimal(datos, "batalla", 2.50),
+                    decimal(datos, "aceleracionmaximafrenadog", 0.92));
+
+            Carro carro = new Carro(motor, transmision, masaKg, radioRuedaM, resistencia, adherencia);
+            lista.add(new PerfilVehiculo(id, nombre, interior, carro));
         }
         return new CatalogoVehiculos(lista, valores.getOrDefault("perfilactivo", lista.get(0).getId()));
+    }
+
+    private static ResistenciaCarretera crearResistencia(Map<String, String> datos, String id, double masaKg)
+            throws IOException {
+        boolean usaCurvaResistencia = datos.containsKey("resistenciaconstanten")
+                || datos.containsKey("resistencialinealnporkmh")
+                || datos.containsKey("resistenciacuadraticanporkmh2");
+        if (usaCurvaResistencia) {
+            if (!datos.containsKey("resistenciaconstanten")
+                    || !datos.containsKey("resistencialinealnporkmh")
+                    || !datos.containsKey("resistenciacuadraticanporkmh2")) {
+                throw new IOException("El perfil " + id
+                        + " requiere los tres coeficientes de resistencia a la carretera.");
+            }
+            return ResistenciaCarretera.desdeCoeficientes(
+                    decimal(datos, "resistenciaconstanten", 0),
+                    decimal(datos, "resistencialinealnporkmh", 0),
+                    decimal(datos, "resistenciacuadraticanporkmh2", 0));
+        }
+        return ResistenciaCarretera.desdeCda(
+                masaKg,
+                decimal(datos, "cda", 0.70),
+                decimal(datos, "rodadura", 0.015));
     }
 
     private static Map<String, String> leerValores(Path configuracion) throws IOException {
@@ -126,27 +158,55 @@ public final class PersistenciaVehiculos {
 
     private static Motor crearMotor(String tipo) throws IOException {
         return switch (tipo.trim()) {
-            case "1000" -> new Motor1000();
-            case "2000" -> new Motor2000();
-            case "3000" -> new Motor3000();
+            case "golf-gti-mk8-5" -> new MotorGolfGtiMk85();
             default -> throw new IOException("Motor no reconocido: " + tipo);
         };
     }
 
-    private static Llanta crearLlantas(String tipo) throws IOException {
-        return switch (tipo.toLowerCase(Locale.ROOT)) {
-            case "baratas" -> new LlantasBaratas();
-            case "buenas" -> new LlantasBuenas();
-            case "bonitas" -> new LlantasBonitas();
-            default -> throw new IOException("Tipo de llantas no reconocido: " + tipo);
-        };
-    }
-
-    private static CajaCambios crearTransmision(String tipo) throws IOException {
+    private static CajaCambios crearTransmision(Map<String, String> datos) throws IOException {
+        String tipo = datos.getOrDefault("transmision", "automatica");
         return switch (tipo.toLowerCase(Locale.ROOT)) {
             case "manual" -> new CajaManual();
             case "automatica", "automática" -> new CajaAutomatica();
+            case "dsg7" -> {
+                if (!datos.containsKey("relacionesmarcha") && !datos.containsKey("relacionesfinales")) {
+                    yield new CajaDsg7GolfGti();
+                }
+                double[] relaciones = listaDecimales(datos, "relacionesmarcha");
+                double[] finales = listaDecimales(datos, "relacionesfinales");
+                if (relaciones.length != 7 || finales.length != relaciones.length) {
+                    throw new IOException("La DSG7 requiere siete relaciones de marcha y una relación final por marcha.");
+                }
+                double factorEntrega = decimal(datos, "factorentregaparefectivo", 0.90);
+                yield new CajaDsg7GolfGti(relaciones, finales, factorEntrega);
+            }
             default -> throw new IOException("Transmisión no reconocida: " + tipo);
         };
+    }
+
+    private static double[] listaDecimales(Map<String, String> datos, String clave) throws IOException {
+        String valor = datos.get(clave);
+        if (valor == null || valor.isBlank()) throw new IOException("Falta la lista '" + clave + "'.");
+        String[] elementos = valor.split(",");
+        double[] resultado = new double[elementos.length];
+        for (int i = 0; i < elementos.length; i++) {
+            try {
+                resultado[i] = Double.parseDouble(elementos[i].trim());
+            } catch (NumberFormatException error) {
+                throw new IOException("Valor numérico inválido en '" + clave + "': " + elementos[i], error);
+            }
+        }
+        return resultado;
+    }
+
+    private static double decimal(Map<String, String> datos, String clave, double valorPredeterminado)
+            throws IOException {
+        String valor = datos.get(clave);
+        if (valor == null) return valorPredeterminado;
+        try {
+            return Double.parseDouble(valor);
+        } catch (NumberFormatException error) {
+            throw new IOException("Valor numérico inválido para '" + clave + "': " + valor, error);
+        }
     }
 }

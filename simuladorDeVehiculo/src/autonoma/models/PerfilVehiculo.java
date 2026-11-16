@@ -7,14 +7,14 @@ public final class PerfilVehiculo {
     private final String interior;
     private final Carro carro;
 
-    public PerfilVehiculo(String id, String nombre, String interior, Motor motor, Llanta llantas,
-            CajaCambios cajaCambios) {
+    public PerfilVehiculo(String id, String nombre, String interior, Carro carro) {
         if (id == null || id.isBlank()) throw new IllegalArgumentException("Falta el identificador del vehículo.");
         if (nombre == null || nombre.isBlank()) throw new IllegalArgumentException("Falta el nombre del vehículo.");
+        if (carro == null) throw new IllegalArgumentException("El vehículo ensamblado es obligatorio.");
         this.id = id;
         this.nombre = nombre;
         this.interior = normalizarInterior(interior);
-        this.carro = new Carro(motor, llantas, cajaCambios);
+        this.carro = carro;
     }
 
     private static String normalizarInterior(String interior) {
