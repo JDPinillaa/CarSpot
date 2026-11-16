@@ -11,6 +11,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
 import javax.swing.BorderFactory;
@@ -52,6 +54,15 @@ public final class Cabina extends JFrame {
         root.add(crearControles(), BorderLayout.SOUTH);
         configurarAtajosTeclado(root);
         setContentPane(root);
+
+        // Si la ventana pierde el foco (otra aplicación o un diálogo), los
+        // pedales no deben quedar aplicados: se liberan de inmediato.
+        addWindowFocusListener(new WindowAdapter() {
+            @Override
+            public void windowLostFocus(WindowEvent evento) {
+                soltarPedales();
+            }
+        });
 
         final long[] instanteAnterior = {System.nanoTime()};
         Timer refresco = new Timer(20, (ActionEvent e) -> {
@@ -132,9 +143,14 @@ public final class Cabina extends JFrame {
     }
 
     private void configurarAtajosTeclado(JPanel root) {
-        if (!carro.isManual()) return;
         InputMap entradas = root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         ActionMap acciones = root.getActionMap();
+
+        // Pedales con teclado: mantener W o S equivale a mantener el botón.
+        enlazarPedal(entradas, acciones, KeyEvent.VK_W, true);
+        enlazarPedal(entradas, acciones, KeyEvent.VK_S, false);
+
+        if (!carro.isManual()) return;
 
         entradas.put(KeyStroke.getKeyStroke('+'), "subirMarcha");
         entradas.put(KeyStroke.getKeyStroke('='), "subirMarcha");
@@ -155,6 +171,30 @@ public final class Cabina extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 cambiarMarcha(-1);
+            }
+        });
+    }
+
+    private void enlazarPedal(InputMap entradas, ActionMap acciones, int tecla,
+            boolean esAcelerador) {
+        String sufijo = esAcelerador ? "Acelerador" : "Freno";
+        String pulsar = "pulsar" + sufijo;
+        String soltar = "soltar" + sufijo;
+        entradas.put(KeyStroke.getKeyStroke(tecla, 0, false), pulsar);
+        entradas.put(KeyStroke.getKeyStroke(tecla, 0, true), soltar);
+        acciones.put(pulsar, new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (esAcelerador) carro.setAcelerador(1);
+                else carro.setFreno(1);
+                actualizarTablero();
+            }
+        });
+        acciones.put(soltar, new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                soltarPedal(esAcelerador);
+                actualizarTablero();
             }
         });
     }
@@ -195,6 +235,12 @@ public final class Cabina extends JFrame {
     private void soltarPedal(boolean esAcelerador) {
         if (esAcelerador) carro.setAcelerador(0);
         else carro.setFreno(0);
+    }
+
+    private void soltarPedales() {
+        carro.setAcelerador(0);
+        carro.setFreno(0);
+        actualizarTablero();
     }
 
     private void actualizarTablero() {
