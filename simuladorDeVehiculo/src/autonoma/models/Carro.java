@@ -9,6 +9,11 @@ import autonoma.models.transmisiones.CajaCambios;
 public abstract class Carro {
     private static final double RETARDO_CAMBIO_S = 0.16; // estimación de retardo en cambio
     private static final double FRACCION_PAR_DURANTE_CAMBIO = 0.75; // transferencia de par estimada
+    // Retención del motor encendido y fricción/bombeo con el motor apagado.
+    private static final double FRACCION_PAR_FRENO_MOTOR = 0.12;
+    private static final double FRACCION_PAR_FRICCION_MOTOR_APAGADO = 0.18;
+    // Por debajo de este umbral el planeo se detiene en lugar de arrastrarse.
+    private static final double VELOCIDAD_PARADO_MPS = 0.25;
 
     private final String nombre;
     private final Motor motor;
@@ -97,7 +102,16 @@ public abstract class Carro {
 
         double fuerzaResistencia = resistenciaCarretera.calcularFuerzaN(velocidadMps);
         double fuerzaFrenado = modeloAdherencia.calcularFuerzaFrenadoN(freno);
-        double fuerzaMotor = !encendido ? 0 : acelerador > 0 ? fuerzaTraccion : -calcularFrenoMotor();
+        double fuerzaMotor;
+        if (!encendido) {
+            // Sin combustión el motor sigue frenando mientras la marcha esté
+            // engranada: fricción interna, bombeo y accesorios.
+            fuerzaMotor = -calcularFrenoMotor(rpmMecanicas, FRACCION_PAR_FRICCION_MOTOR_APAGADO);
+        } else if (acelerador > 0) {
+            fuerzaMotor = fuerzaTraccion;
+        } else {
+            fuerzaMotor = -calcularFrenoMotor(revoluciones, FRACCION_PAR_FRENO_MOTOR);
+        }
 
         if (tiempoCambioRestante > 0) {
             fuerzaMotor *= FRACCION_PAR_DURANTE_CAMBIO;
@@ -105,6 +119,9 @@ public abstract class Carro {
         }
         double aceleracion = (fuerzaMotor - fuerzaFrenado - fuerzaResistencia) / masaKg;
         velocidadMps = Math.max(0, velocidadMps + aceleracion * paso);
+        if (acelerador == 0 && velocidadMps < VELOCIDAD_PARADO_MPS) {
+            velocidadMps = 0;
+        }
         double velocidadMaxima = motor.getVelocidadMaxima() / 3.6;
         if (velocidadMps >= velocidadMaxima) {
             velocidadMps = velocidadMaxima;
@@ -112,9 +129,10 @@ public abstract class Carro {
         }
     }
 
-    private double calcularFrenoMotor() {
-        if (!encendido || velocidadMps < 0.5) return 0;
-        return motor.getParNm(revoluciones) * 0.12 * cajaCambios.getRelacionActual()
+    private double calcularFrenoMotor(double rpm, double fraccionPar) {
+        if (velocidadMps < 0.5) return 0;
+        double rpmEfectivas = Math.min(rpm, motor.getRevolucionesMaximas() - 1);
+        return motor.getParNm(rpmEfectivas) * fraccionPar * cajaCambios.getRelacionActual()
                 * cajaCambios.getRelacionFinal() / radioRuedaM;
     }
 
