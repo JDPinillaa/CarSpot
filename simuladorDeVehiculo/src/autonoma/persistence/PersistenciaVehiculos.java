@@ -4,8 +4,10 @@ import autonoma.models.Carro;
 import autonoma.models.PerfilVehiculo;
 import autonoma.models.fisica.ModeloAdherenciaLongitudinal;
 import autonoma.models.fisica.ResistenciaCarretera;
+import autonoma.models.fisica.TipoTraccion;
 import autonoma.models.motores.Motor;
 import autonoma.models.motores.MotorGolfGtiMk85;
+import autonoma.models.motores.MotorSubaruBrzZd8;
 import autonoma.models.transmisiones.CajaAutomatica;
 import autonoma.models.transmisiones.CajaCambios;
 import autonoma.models.transmisiones.CajaDsg7GolfGti;
@@ -15,6 +17,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -50,6 +53,7 @@ public final class PersistenciaVehiculos {
             String interior = datos.getOrDefault("interior", "clasico");
             double masaKg = decimal(datos, "masa", 1300);
             double radioRuedaM = decimal(datos, "radiorueda", 0.315);
+            TipoTraccion traccion = crearTraccion(datos.getOrDefault("traccion", "delantera"));
 
             ResistenciaCarretera resistencia = crearResistencia(datos, id, masaKg);
             ModeloAdherenciaLongitudinal adherencia = new ModeloAdherenciaLongitudinal(
@@ -58,12 +62,22 @@ public final class PersistenciaVehiculos {
                     decimal(datos, "repartopesodelantero", 0.60),
                     decimal(datos, "alturacentrogravedad", 0.55),
                     decimal(datos, "batalla", 2.50),
-                    decimal(datos, "aceleracionmaximafrenadog", 0.92));
+                    decimal(datos, "aceleracionmaximafrenadog", 0.92),
+                    traccion);
 
             Carro carro = new Carro(motor, transmision, masaKg, radioRuedaM, resistencia, adherencia);
             lista.add(new PerfilVehiculo(id, nombre, interior, carro));
         }
         return new CatalogoVehiculos(lista, valores.getOrDefault("perfilactivo", lista.get(0).getId()));
+    }
+
+    private static TipoTraccion crearTraccion(String valor) throws IOException {
+        return switch (valor.trim().toLowerCase(Locale.ROOT)) {
+            case "delantera", "fwd" -> TipoTraccion.DELANTERA;
+            case "trasera", "rwd" -> TipoTraccion.TRASERA;
+            case "integral", "awd" -> TipoTraccion.INTEGRAL;
+            default -> throw new IOException("Tipo de tracción no reconocido: " + valor);
+        };
     }
 
     private static ResistenciaCarretera crearResistencia(Map<String, String> datos, String id, double masaKg)
@@ -159,29 +173,58 @@ public final class PersistenciaVehiculos {
     private static Motor crearMotor(String tipo) throws IOException {
         return switch (tipo.trim()) {
             case "golf-gti-mk8-5" -> new MotorGolfGtiMk85();
+            case "subaru-brz-zd8" -> new MotorSubaruBrzZd8();
             default -> throw new IOException("Motor no reconocido: " + tipo);
         };
     }
 
     private static CajaCambios crearTransmision(Map<String, String> datos) throws IOException {
         String tipo = datos.getOrDefault("transmision", "automatica");
+        boolean tieneRelaciones = datos.containsKey("relacionesmarcha");
+        double factorEntrega = decimal(datos, "factorentregaparefectivo", 0.90);
         return switch (tipo.toLowerCase(Locale.ROOT)) {
-            case "manual" -> new CajaManual();
-            case "automatica", "automática" -> new CajaAutomatica();
+            case "manual" -> {
+                if (!tieneRelaciones) yield new CajaManual();
+                double[] relaciones = listaDecimales(datos, "relacionesmarcha");
+                double[] finales = resolverFinales(datos, relaciones.length);
+                yield new CajaManual(relaciones, finales, factorEntrega);
+            }
+            case "automatica", "automática" -> {
+                if (!tieneRelaciones) yield new CajaAutomatica();
+                double[] relaciones = listaDecimales(datos, "relacionesmarcha");
+                double[] finales = resolverFinales(datos, relaciones.length);
+                yield new CajaAutomatica(relaciones, finales, factorEntrega);
+            }
             case "dsg7" -> {
-                if (!datos.containsKey("relacionesmarcha") && !datos.containsKey("relacionesfinales")) {
+                if (!tieneRelaciones && !datos.containsKey("relacionesfinales")) {
                     yield new CajaDsg7GolfGti();
                 }
                 double[] relaciones = listaDecimales(datos, "relacionesmarcha");
-                double[] finales = listaDecimales(datos, "relacionesfinales");
-                if (relaciones.length != 7 || finales.length != relaciones.length) {
-                    throw new IOException("La DSG7 requiere siete relaciones de marcha y una relación final por marcha.");
+                double[] finales = resolverFinales(datos, relaciones.length);
+                if (relaciones.length != 7) {
+                    throw new IOException("La DSG7 requiere siete relaciones de marcha.");
                 }
-                double factorEntrega = decimal(datos, "factorentregaparefectivo", 0.90);
                 yield new CajaDsg7GolfGti(relaciones, finales, factorEntrega);
             }
             default -> throw new IOException("Transmisión no reconocida: " + tipo);
         };
+    }
+
+    private static double[] resolverFinales(Map<String, String> datos, int numeroMarchas) throws IOException {
+        if (datos.containsKey("relacionesfinales")) {
+            double[] finales = listaDecimales(datos, "relacionesfinales");
+            if (finales.length != numeroMarchas) {
+                throw new IOException("La cantidad de relaciones finales debe coincidir con las marchas.");
+            }
+            return finales;
+        }
+        if (datos.containsKey("relacionfinal")) {
+            double relacionFinal = decimal(datos, "relacionfinal", 3.90);
+            double[] finales = new double[numeroMarchas];
+            Arrays.fill(finales, relacionFinal);
+            return finales;
+        }
+        throw new IOException("Falta 'relacionFinal' o 'relacionesFinales' para la transmisión configurada.");
     }
 
     private static double[] listaDecimales(Map<String, String> datos, String clave) throws IOException {

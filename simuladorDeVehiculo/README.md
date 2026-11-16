@@ -1,9 +1,11 @@
 # Simulador de Vehículos CarSpot
 
-Aplicación de escritorio Java/Swing con dinámica longitudinal propia. El perfil
-activo es el Volkswagen Golf GTI Mk8.5 europeo (265 PS, tracción delantera,
-DSG7). La procedencia y el grado de confianza de cada parámetro se documentan
-en [`docs/referencia-golf-gti-mk8-5.md`](docs/referencia-golf-gti-mk8-5.md).
+Aplicación de escritorio Java/Swing con dinámica longitudinal propia. Incluye dos
+perfiles configurados en `data/especificaciones.txt`:
+- **Volkswagen Golf GTI Mk8.5 europeo** (265 PS, tracción delantera, DSG7):
+  [`docs/referencia-golf-gti-mk8-5.md`](docs/referencia-golf-gti-mk8-5.md)
+- **Subaru BRZ (ZD8) 2.4** (234 PS, tracción trasera, manual 6 velocidades):
+  [`docs/referencia-subaru-brz-zd8.md`](docs/referencia-subaru-brz-zd8.md)
 
 ## Requisitos y ejecución
 
@@ -53,10 +55,10 @@ siendo provisionales; no deben citarse como especificaciones oficiales.
 | `models.Carro` | Estado e integración del vehículo, separado de Swing y audio |
 | `models.PerfilVehiculo` | Ensamble del vehículo y su presentación |
 | `models.motores.Motor` / `CurvaParMotor` | Régimen, configuración base y curva interpolada de par |
-| `models.motores.MotorGolfGtiMk85` | Curva y parámetros del EA888 evo4 (265 PS) |
+| `models.motores.MotorGolfGtiMk85` / `MotorSubaruBrzZd8` | Curvas de par de los motores EA888 evo4 (265 PS) y FA24D (234 PS) |
 | `models.transmisiones.CajaCambios` | Contrato de transmisión y cajas concretas (`CajaDsg7GolfGti`, `CajaAutomatica`, `CajaManual`) |
 | `models.fisica.ResistenciaCarretera` | Rodadura y resistencia aerodinámica |
-| `models.fisica.ModeloAdherenciaLongitudinal` | Límite de tracción y fuerza de frenado |
+| `models.fisica.ModeloAdherenciaLongitudinal` / `TipoTraccion` | Límite de tracción según eje motriz (FWD/RWD/AWD) y fuerza de frenado |
 | `persistence.PersistenciaVehiculos` | Lectura y validación de perfiles |
 | `views.Cabina` | Ventana, controles y ciclo de actualización |
 | `views.InteriorFactory` | Composición visual de los interiores |

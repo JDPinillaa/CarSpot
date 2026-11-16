@@ -1,22 +1,22 @@
 # Perfiles de vehículos. Agrega otro bloque perfil.<id>.<opcion>=<valor>.
 # masa (kg), CdA (m²), radioRueda (m), Crr o curva de resistencia (N, N/(km/h),
 # N/(km/h)²), adherencia, reparto delantero, altura del centro de gravedad (m),
-# batalla (m) y desaceleración máxima de freno (g).
-# Las relaciones finales de la DSG7 se expresan una por marcha para admitir
-# trenes distintos. EPA GTI US: N/V 26.6, consistente con 7.ª 0.635 × final
-# 3.125 y radio geométrico 0.319 m. El León 2.0 TSI DQ381-7F publica grupos
-# 4.167/3.125; el mapeo 1/4/5 y 2/3/6/7 es proxy de esa arquitectura, pendiente
-# de confirmar para el código de caja del GTI Mk8.5.
-# Marchas de referencia DQ381-7F FWD SEAT León 2.0 TSI como proxy; la 7.ª
-# coincide además con el N/V EPA del GTI estadounidense. No es tabla confirmada
-# para el GTI Mk8.5 europeo.
-# El factor efectivo de entrega de par y la adherencia se ajustan a pruebas;
-# no son eficiencias medidas de transmisión ni cifras de fábrica.
+# batalla (m), desaceleración máxima de freno (g) y tracción (delantera, trasera
+# o integral).
+# Las relaciones finales pueden expresarse por marcha (relacionesFinales) para
+# cajas de doble árbol como la DQ381 o con un único grupo final (relacionFinal).
+# El factor efectivo de entrega de par y la adherencia se calibran frente a
+# pruebas instrumentadas; no son eficiencias medidas de fábrica.
 perfilActivo=golf-gti-mk8-5
 
+# --- Volkswagen Golf GTI Mk8.5 (265 PS · DSG7 · FWD) ---
+# Marchas de referencia DQ381-7F FWD SEAT León 2.0 TSI como proxy; la 7.ª
+# coincide con el N/V EPA del GTI estadounidense. No es tabla confirmada para el
+# GTI Mk8.5 europeo.
 perfil.golf-gti-mk8-5.nombre=Volkswagen Golf GTI Mk8.5 · 265 PS
 perfil.golf-gti-mk8-5.motor=golf-gti-mk8-5
 perfil.golf-gti-mk8-5.transmision=dsg7
+perfil.golf-gti-mk8-5.traccion=delantera
 perfil.golf-gti-mk8-5.relacionesMarcha=3.40,2.75,1.767,0.925,0.795,0.755,0.635
 perfil.golf-gti-mk8-5.relacionesFinales=4.167,3.125,3.125,4.167,4.167,3.125,3.125
 perfil.golf-gti-mk8-5.factorEntregaParEfectivo=0.81
@@ -32,3 +32,27 @@ perfil.golf-gti-mk8-5.repartoPesoDelantero=0.62
 perfil.golf-gti-mk8-5.alturaCentroGravedad=0.55
 perfil.golf-gti-mk8-5.batalla=2.627
 perfil.golf-gti-mk8-5.aceleracionMaximaFrenadoG=1.05
+
+# --- Subaru BRZ (ZD8 · 2.4 Boxer 234 PS · 6MT · RWD) ---
+# Relaciones de caja TL70 de 6 velocidades y grupo final único 4.100 publicados
+# oficialmente por Subaru. Neumático 215/40 R18 (radio geométrico 0.3146 m).
+# Resistencia EPA 2025 Subaru BRZ 2.4L Manual R18 (Target Coef A/B/C: 31.29 lbf,
+# 0.4108 lbf/mph y 0.01631 lbf/mph²) convertida a N y km/h.
+perfil.subaru-brz-zd8.nombre=Subaru BRZ 2.4 · 234 PS (6MT)
+perfil.subaru-brz-zd8.motor=subaru-brz-zd8
+perfil.subaru-brz-zd8.transmision=manual
+perfil.subaru-brz-zd8.traccion=trasera
+perfil.subaru-brz-zd8.relacionesMarcha=3.626,2.188,1.541,1.213,1.000,0.767
+perfil.subaru-brz-zd8.relacionFinal=4.100
+perfil.subaru-brz-zd8.factorEntregaParEfectivo=0.80
+perfil.subaru-brz-zd8.interior=deportivo
+perfil.subaru-brz-zd8.masa=1275
+perfil.subaru-brz-zd8.radioRueda=0.3146
+perfil.subaru-brz-zd8.resistenciaConstanteN=139.1848
+perfil.subaru-brz-zd8.resistenciaLinealNporKmh=1.135449
+perfil.subaru-brz-zd8.resistenciaCuadraticaNporKmh2=0.0280121
+perfil.subaru-brz-zd8.adherenciaLongitudinal=0.96
+perfil.subaru-brz-zd8.repartoPesoDelantero=0.53
+perfil.subaru-brz-zd8.alturaCentroGravedad=0.456
+perfil.subaru-brz-zd8.batalla=2.575
+perfil.subaru-brz-zd8.aceleracionMaximaFrenadoG=1.10

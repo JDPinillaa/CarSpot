@@ -81,7 +81,10 @@ public class Carro {
         if (encendido && velocidadMps < 0.5) rpmCalculadas = motor.getRevolucionesMinimas();
         revoluciones = rpmCalculadas;
 
-        double fuerzaMotorEnRuedas = motor.getParNm(revoluciones)
+        double rpmMecanicas = velocidadMps * cajaCambios.getRelacionActual()
+                * cajaCambios.getRelacionFinal() * 60.0 / (2.0 * Math.PI * radioRuedaM);
+        boolean enCorteInyeccion = rpmMecanicas >= motor.getRevolucionesMaximas();
+        double fuerzaMotorEnRuedas = enCorteInyeccion ? 0 : motor.getParNm(revoluciones)
                 * cajaCambios.getRelacionActual() * cajaCambios.getRelacionFinal()
                 * cajaCambios.getEficiencia() / radioRuedaM;
         double fuerzaTraccion = acelerador * fuerzaMotorEnRuedas;
@@ -116,10 +119,16 @@ public class Carro {
     }
 
     public void cambiarMarcha(int direccion) {
-        if (!cajaCambios.esManual()) return;
+        if (!cajaCambios.esManual() || direccion == 0) return;
         int marchaAntes = cajaCambios.getMarchaActual();
         cajaCambios.cambiarMarcha(direccion);
         if (cajaCambios.getMarchaActual() != marchaAntes) {
+            double rpmDestino = velocidadMps * cajaCambios.getRelacionActual()
+                    * cajaCambios.getRelacionFinal() * 60.0 / (2.0 * Math.PI * radioRuedaM);
+            if (direccion < 0 && rpmDestino > motor.getRevolucionesMaximas()) {
+                cajaCambios.cambiarMarcha(1);
+                return;
+            }
             tiempoCambioRestante = RETARDO_CAMBIO_S
                     * Math.abs(cajaCambios.getMarchaActual() - marchaAntes);
         }

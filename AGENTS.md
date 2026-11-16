@@ -2,9 +2,10 @@
 
 ## Proyecto
 Este repositorio se dedica al simulador de vehículos Java/Swing ubicado en
-`simuladorDeVehiculo/`. El vehículo real de referencia actual es el Volkswagen
-Golf GTI Mk8.5 europeo de 265 PS. Prioriza datos trazables y un modelo que pueda
-extenderse a otros vehículos; evita incorporar proyectos ajenos al simulador.
+`simuladorDeVehiculo/`. Los vehículos de referencia actuales son el Volkswagen
+Golf GTI Mk8.5 europeo (265 PS, DSG7, FWD) y el Subaru BRZ ZD8 2.4 (234 PS,
+6MT, RWD). Prioriza datos trazables y un modelo extensible; evita incorporar
+proyectos ajenos al simulador.
 
 ## Stack y ejecución
 - Java 22, Swing y Ant/NetBeans; no se requieren dependencias externas.
