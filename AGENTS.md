@@ -13,6 +13,8 @@ proyectos ajenos al simulador.
   `mkdir -p /tmp/carspot-java-build && find simuladorDeVehiculo/src -name '*.java' -print0 | xargs -0 javac --release 22 -d /tmp/carspot-java-build`
 - Ejecutar desde la raíz:
   `java -cp /tmp/carspot-java-build autonoma.main.Main`
+- Ejecutar pruebas desde la raíz:
+  `./simuladorDeVehiculo/pruebas.sh` (o `ant pruebas` en el proyecto).
 - También se puede abrir `simuladorDeVehiculo/` como proyecto Ant en NetBeans.
 
 ## Arquitectura

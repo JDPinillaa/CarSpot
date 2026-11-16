@@ -1,5 +1,7 @@
 # CarSpot · Simulador Longitudinal de Vehículos
 
+**Versión 1.1** · Java 22 + Swing · [Historial de cambios](CHANGELOG.md)
+
 **CarSpot** es un simulador de escritorio desarrollado en **Java 22 y Swing** que modela la dinámica longitudinal de vehículos reales en tiempo real. A diferencia de un ejercicio discreto por pasos fijos, el proyecto integra las ecuaciones físicas de movimiento en función de curvas de par motor, relaciones de transmisión, transferencia de carga entre ejes y resistencias de rodadura y aerodinámica obtenidas de fichas técnicas oficiales y ensayos de laboratorio (*coastdown* de la EPA).
 
 ---
@@ -83,10 +85,26 @@ java -cp /tmp/carspot-java-build autonoma.main.Main
 
 También se puede abrir [`simuladorDeVehiculo/`](simuladorDeVehiculo/) directamente como proyecto **Ant** en NetBeans o IntelliJ IDEA.
 
+### Pruebas automáticas
+
+El modelo físico incluye una suite determinista sin dependencias externas que comprueba aceleraciones, velocidad máxima, frenada, protección de sobrerrevoluciones, rango de marchas de la DSG y apagado en marcha. Desde la raíz:
+
+```bash
+./simuladorDeVehiculo/pruebas.sh
+```
+
+También puede ejecutarse con Ant desde la carpeta del proyecto:
+
+```bash
+cd simuladorDeVehiculo && ant pruebas
+```
+
+La suite termina con código de salida distinto de cero si alguna comprobación falla.
+
 ### Controles en la cabina
 
-- **Encender / Apagar**: Arranca o detiene el motor. Si se apaga en movimiento, el vehículo pierde tracción y desacelera por las resistencias físicas.
-- **Acelerador · mantener / Freno · mantener**: Mantén presionado con el mouse para aplicar demanda continua.
+- **Encender / Apagar**: Arranca o detiene el motor. Si se apaga en movimiento con una marcha engranada, el vehículo pierde la combustión pero conserva el freno de fricción y bombeo del motor: desde 100 km/h se detiene en unos 36–38 s, en lugar de planear durante minutos.
+- **Acelerador · mantener / Freno · mantener**: Mantén presionado con el mouse, o usa las teclas **`W`** y **`S`**. Los pedales se liberan automáticamente si la ventana pierde el foco.
 - **Cambio de marcha (vehículos manuales)**: Botones **`－ Marcha`** y **`＋ Marcha`** en pantalla, o teclas **`-`** y **`+`** del teclado.
 - **Estado**: Muestra un resumen instantáneo de velocidad, régimen, transmisión y marcha actual.
 
@@ -116,6 +134,8 @@ simuladorDeVehiculo/
 │   │   └── transmisiones/            # Contrato de caja y transmisiones manuales/automáticas/DSG
 │   ├── sounds/                       # Reproductor de efectos de sonido opcionales
 │   └── views/                        # Cabina Swing, tablero e indicadores circulares
+├── test/autonoma/tests/              # Pruebas deterministas del modelo (sin dependencias)
+├── pruebas.sh                        # Compila y ejecuta la suite de pruebas
 ├── nbproject/                        # Configuración del proyecto Ant/NetBeans
 └── README.md                         # Guía rápida del módulo Java
 ```

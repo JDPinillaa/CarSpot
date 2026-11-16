@@ -92,6 +92,11 @@ Corrida con paso `dt = 0,01 s` desde parado, cambiando de marcha a `7.300 rpm`
   `100 km/h`, reproduciendo fielmente por qué el BRZ/GR86 manual registra
   `5,4 s` en el `0–60 mph` (`96,6 km/h` en 2.ª) pero requiere `6,3 s` para el
   `0–100 km/h` en 3.ª.
-- **Frenado 100–0 km/h**: El modelo se detiene en **2,44 s** y **33,58 m**,
+- **Frenado 100–0 km/h**: El modelo se detiene en **2,42 s** y **33,6 m**,
   dentro del rango de `33–35 m` medido en pruebas con neumáticos Michelin Pilot
   Sport 4 de serie.
+- **Apagado en marcha**: si se apaga el motor con una marcha engranada, la
+  transmisión permanece conectada y se aplica un par de fricción y bombeo
+  **estimado** del 18 % del par de la curva a las rpm mecánicas. Desde 100 km/h
+  en 3.ª el modelo se detiene en unos 36 s y 420 m. El coeficiente es una
+  estimación del simulador; no es una medición de Subaru.
