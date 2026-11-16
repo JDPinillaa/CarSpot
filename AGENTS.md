@@ -1,38 +1,44 @@
-# AGENTS.md — Guía para agentes
+# AGENTS.md — Guía del simulador
 
 ## Proyecto
-Simulador de Vehículo: refactor de un simulador académico Java/Swing a un juego de carreras top-down en Godot. El proyecto activo es `game2d/`; `simuladorDeVehiculo/` es legado de referencia y no se modifica salvo petición explícita.
+Este repositorio se dedica al simulador de vehículos Java/Swing ubicado en
+`simuladorDeVehiculo/`. El vehículo real de referencia actual es el Volkswagen
+Golf GTI Mk8.5 europeo de 265 PS. Prioriza datos trazables y un modelo que pueda
+extenderse a otros vehículos; evita incorporar proyectos ajenos al simulador.
 
-## Stack
-- Godot 4.7 + GDScript con tipado estático, render Forward+.
-- Sin dependencias externas: física, arte, pistas, HUD y audio se generan por código.
-- Física a 120 Hz con 4 subpasos; unidades SI (m, kg, N, rad, s; la UI muestra km/h).
-
-## Ejecutar y probar
-- Jugar: `godot --path game2d`
-- Smoke: `godot --headless --path game2d -- --smoke`
-- Vueltas: `godot --headless --path game2d -- --laps --time=45`
-- Opciones: `--car=N --track=N`, `--shot`, `--menu_shot`.
-- Ejecuta al menos el smoke headless antes y después de tocar física, cronometraje o flujo de juego.
+## Stack y ejecución
+- Java 22, Swing y Ant/NetBeans; no se requieren dependencias externas.
+- Compilar desde la raíz:
+  `mkdir -p /tmp/carspot-java-build && find simuladorDeVehiculo/src -name '*.java' -print0 | xargs -0 javac --release 22 -d /tmp/carspot-java-build`
+- Ejecutar desde la raíz:
+  `java -cp /tmp/carspot-java-build autonoma.main.Main`
+- También se puede abrir `simuladorDeVehiculo/` como proyecto Ant en NetBeans.
 
 ## Arquitectura
-- `main.gd`: estados MENU/COUNTDOWN/RACE/PAUSED, cronometraje por sectores, cámara, entrada, audio y pruebas.
-- `car.gd` + `powertrain.gd`: modelo de bicicleta, neumáticos, motor de combustión y caja automática.
-- `race_track.gd` + `track_data.gd`: circuito procedural Catmull-Rom y consultas de física.
-- `car_specs.gd`: datos de coches, curvas de par y relaciones de caja.
-- `hud.gd`, `menu.gd`, `car_art.gd`, `engine_audio.gd`, `skid_marks.gd`, `ghost_car.gd`: presentación.
-- Los datos mandan: añade coches o pistas en los arrays de datos, sin duplicar lógica.
+- `models.Carro` y `models.PerfilVehiculo`: estado del vehículo, integración
+  longitudinal y ensamble del perfil; no dependen de Swing ni de audio.
+- `models.fisica`: `ResistenciaCarretera` y `ModeloAdherenciaLongitudinal`
+  (cálculos físicos encapsulados y reutilizables).
+- `models.motores`: `Motor`, `CurvaParMotor` y motores concretos por vehículo.
+- `models.transmisiones`: `CajaCambios`, `AbstractCajaCambios` y transmisiones
+  concretas.
+- `persistence.PersistenciaVehiculos`: carga y valida `data/especificaciones.txt`.
+- `views`: cabina, interiores e indicadores Swing.
+- `sounds`: efectos de audio opcionales.
+- `docs/referencia-golf-gti-mk8-5.md`: fuentes, supuestos, calibración y pendientes.
 
 ## Convenciones
-- GDScript con tipos, nombres descriptivos y comentarios/UI en español.
-- Mantén física y presentación separadas; no uses cuerpos físicos de Godot para el coche.
-- Evita assets externos si el recurso puede generarse por código.
-- Mantén el README sincronizado con la carpeta real (`game2d/`, no `game/`).
-- No reescribas el legado Java ni borres archivos sin confirmar.
+- Interfaz, nombres nuevos y comentarios en español; código Java tipado y
+  responsabilidades de física y presentación separadas.
+- Los perfiles viven en `data/especificaciones.txt`; las curvas específicas de
+  motor y cajas se implementan en modelos dedicados.
+- Marca cada dato como oficial, derivado o estimado/calibrado. No presentes
+  calibraciones ni datos de otro vehículo como especificaciones de fábrica.
+- Mantén README y MEMORY alineados con el contenido Java existente.
+- No borres archivos ni modifiques comportamiento no relacionado con la tarea.
 
 ## Memoria
-- Al empezar, lee `MEMORY.md` para conocer el estado del proyecto y las decisiones tomadas.
-- Al terminar una tarea, actualízalo: estado actual, decisiones importantes (con su porqué) y errores a evitar.
-- Mantenlo breve (máximo ~50 líneas): resume o elimina lo que ya no aporte.
-- Si algo se convierte en una regla permanente, propón moverlo a `AGENTS.md` en lugar de dejarlo en la memoria.
-- No guardes nunca datos sensibles (claves, tokens, datos personales).
+- Lee `MEMORY.md` al empezar y actualízalo al terminar cuando cambie el estado
+  o una decisión. Máximo aproximado de 50 líneas.
+- Si una decisión es una regla permanente, incorpórala aquí y resume la memoria.
+- No guardes datos sensibles.

@@ -1,83 +1,64 @@
-# Simulador de Vehículo · versión Java
+# Simulador de Vehículos CarSpot
 
-Primera versión académica de CarSpot, implementada con Java y Swing. Esta etapa
-conserva el modelo original de motor, llantas, patinaje y accidentes, ahora
-separado de la interfaz y preparado para configurar varios vehículos.
+Aplicación de escritorio Java/Swing con dinámica longitudinal propia. El perfil
+activo es el Volkswagen Golf GTI Mk8.5 europeo (265 PS, tracción delantera,
+DSG7). La procedencia y el grado de confianza de cada parámetro se documentan
+en [`docs/referencia-golf-gti-mk8-5.md`](docs/referencia-golf-gti-mk8-5.md).
 
-## Ejecutar
+## Requisitos y ejecución
 
-Requiere JDK 22 o compatible. Abre esta carpeta como proyecto Ant en NetBeans y
-ejecuta `autonoma.main.Main`. El programa busca `data/especificaciones.txt`
-desde el directorio de ejecución y desde la ubicación de las clases, por lo que
-puedes iniciarlo desde esta carpeta o desde la raíz del repositorio. Al iniciar
-permite seleccionar uno de los perfiles configurados.
-
-También se puede compilar desde la carpeta del proyecto:
+Requiere JDK 22 o compatible. Para compilar desde esta carpeta:
 
 ```bash
 mkdir -p /tmp/carspot-java-build
 find src -name '*.java' -print0 | xargs -0 javac --release 22 -d /tmp/carspot-java-build
 ```
 
-## Perfiles de vehículo
+Desde la raíz del repositorio, inicia la aplicación con:
 
-`data/especificaciones.txt` define los vehículos con pares `clave=valor`:
-
-```properties
-perfilActivo=urbano
-
-perfil.urbano.nombre=CarSpot Urbano
-perfil.urbano.motor=1000
-perfil.urbano.llantas=Buenas
-perfil.urbano.transmision=automatica
-perfil.urbano.interior=clasico
-
-perfil.deportivo.nombre=CarSpot Deportivo
-perfil.deportivo.motor=3000
-perfil.deportivo.llantas=Bonitas
-perfil.deportivo.transmision=manual
-perfil.deportivo.interior=deportivo
+```bash
+java -cp /tmp/carspot-java-build autonoma.main.Main
 ```
 
-Para agregar otro vehículo, agrega un bloque con un identificador nuevo y las
-claves `nombre`, `motor`, `llantas`, `transmision` e `interior`. Los motores
-disponibles son `1000`, `2000` y `3000`; los neumáticos son `Baratas`, `Buenas`
-y `Bonitas`; las transmisiones son `manual` o `automatica`; y los interiores
-disponibles son `clasico` y `deportivo`. `perfilActivo` marca cuál aparece
-seleccionado inicialmente.
+También puedes abrir esta carpeta como proyecto Ant en NetBeans. La aplicación
+localiza `data/especificaciones.txt` desde el directorio de ejecución o desde
+la ruta de las clases compiladas.
+
+## Perfil del vehículo
+
+Los parámetros configurables están en `data/especificaciones.txt`. El perfil
+actual incluye masa, radio de rueda, curva de resistencia, adherencia, reparto
+de peso, altura del centro de gravedad, batalla, freno y relaciones de caja.
+Añade un bloque `perfil.<id>.<clave>=<valor>` para configurar otro vehículo y
+un modelo de motor/transmisión cuando requiera una curva o lógica específica.
+`perfilActivo` selecciona el vehículo inicial.
+
+Los datos de Golf se clasifican como publicados, derivados o estimados. Las
+relaciones de la DQ381 y varios parámetros de pérdidas y adherencia siguen
+siendo provisionales; no deben citarse como especificaciones oficiales.
 
 ## Controles y tablero
 
-- **Encender / Apagar** controla el estado del motor.
-- **Acelerar / Frenar** solicita un cambio de velocidad en km/h.
-- La **caja manual** tiene botones para subir y bajar marcha; cada marcha limita
-  la velocidad alcanzable hasta que se cambie. La **automática** cambia según
-  las revoluciones del motor.
-- El tablero muestra un velocímetro en km/h, tacómetro en rpm y la marcha actual.
-- El interior clásico y el deportivo comparten los mismos medidores y reglas;
-  cambian su composición, colores y dimensiones desde `InteriorFactory`.
-
-La simulación mantiene una escala académica por acciones discretas del usuario;
-todavía no modela aceleración física continua. La arquitectura separa el
-vehículo, su transmisión y su presentación para que el modelo de conducción se
-pueda ampliar después sin rehacer los interiores ni la ventana principal.
+- Usa **Encender / Apagar** para controlar el motor.
+- Mantén presionado **Acelerador** o **Freno** para aplicar cada pedal.
+- La caja automática cambia según las revoluciones y la demanda; la caja manual
+  permite subir y bajar marcha.
+- El tablero muestra velocidad en km/h, revoluciones por minuto y marcha actual.
+- Los interiores clásico y deportivo cambian la presentación de los indicadores.
 
 ## Organización del código
 
 | Paquete / clase | Responsabilidad |
 | --- | --- |
-| `models.Carro` | Estado y reglas del vehículo, sin Swing ni reproducción de audio |
-| `models.Motor`, `models.Llanta` | Capacidades del motor y límite de patinaje |
-| `models.CajaCambios` | Contrato de transmisión; implementaciones manual y automática |
-| `models.PerfilVehiculo` | Ensamble de motor, llantas, caja e interior |
-| `persistence.PersistenciaVehiculos` | Lectura y validación del catálogo configurable |
-| `views.Cabina` | Ventana y controles que invocan el modelo |
-| `views.InteriorFactory` | Composición de cada variante de cabina |
-| `views.IndicadorCircular` | Medidor reutilizable para velocidad y revoluciones |
-| `sounds.ReproductorAudio` | Efectos de sonido opcionales, fuera del modelo |
-
-Para crear una nueva transmisión, implementa `CajaCambios`; para añadir un
-interior, agrega una variante a `InteriorFactory` y valida su identificador en
-`PerfilVehiculo`. La clase `Cabina` dejó de usar el formulario generado de
-NetBeans; `Cabina.form` se conserva por ahora como archivo histórico y no debe
-usarse para regenerar la ventana.
+| `models.Carro` | Estado e integración del vehículo, separado de Swing y audio |
+| `models.PerfilVehiculo` | Ensamble del vehículo y su presentación |
+| `models.motores.Motor` / `CurvaParMotor` | Régimen, configuración base y curva interpolada de par |
+| `models.motores.MotorGolfGtiMk85` | Curva y parámetros del EA888 evo4 (265 PS) |
+| `models.transmisiones.CajaCambios` | Contrato de transmisión y cajas concretas (`CajaDsg7GolfGti`, `CajaAutomatica`, `CajaManual`) |
+| `models.fisica.ResistenciaCarretera` | Rodadura y resistencia aerodinámica |
+| `models.fisica.ModeloAdherenciaLongitudinal` | Límite de tracción y fuerza de frenado |
+| `persistence.PersistenciaVehiculos` | Lectura y validación de perfiles |
+| `views.Cabina` | Ventana, controles y ciclo de actualización |
+| `views.InteriorFactory` | Composición visual de los interiores |
+| `views.IndicadorCircular` | Indicadores de velocidad y revoluciones |
+| `sounds.ReproductorAudio` | Efectos de sonido opcionales |
